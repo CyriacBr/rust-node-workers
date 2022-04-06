@@ -4,6 +4,8 @@ use std::{
   thread,
 };
 
+use serde_json::Value;
+
 pub struct Worker {
   pub id: usize,
   pub child: Option<Child>,
@@ -41,48 +43,62 @@ impl Worker {
     self.child = Some(child);
   }
 
-  pub fn perform_task(&mut self) {
+  pub fn perform_task(&mut self, payload: Option<Value>) {
     self.idle = false;
 
     let mut reader = self.stdout.take().unwrap();
     let mut stdin = self.stdin.take().unwrap();
 
-    if self.ready {
-      println!("[worker {}] already ready", self.id);
-      println!("[worker {}] send WORK to child stdin", self.id);
-      stdin.write_all(b"WORK\n").unwrap();
-      println!("[worker {}] waiting for OK", self.id);
-      loop {
-        let mut ln = String::new();
-        reader.read_line(&mut ln).unwrap();
-        println!("[worker {}] (stdout) {}", self.id, ln.clone().trim());
-        if ln == "OK\n" {
-          println!("[worker {}] OK received", self.id);
-          break;
-        }
-      }
-    } else {
-      println!("[worker {}] waiting for ready", self.id);
-      loop {
-        let mut ln = String::new();
-        reader.read_line(&mut ln).unwrap();
-        println!("[worker {}] (stdout) {}", self.id, ln.clone().trim());
-        if ln == "READY\n" {
-          self.ready = true;
-          println!("[worker {}] send WORK to child stdin", self.id);
-          stdin.write_all(b"WORK\n").unwrap();
-          println!("[worker {}] waiting for OK", self.id);
-        } else if ln == "OK\n" {
-          println!("[worker {}] OK received", self.id);
-          break;
-        }
-      }
+    if !self.ready {
+      self.communicate("", "READY", &stdin, &mut reader);
+      self.ready = true;
     }
+
+    println!("[worker {}] is ready", self.id);
+    if let Some(payload) = payload {
+      let payload_str = payload.to_string();
+      let chunks = payload_str
+        .as_bytes()
+        .chunks(1000)
+        .map(std::str::from_utf8)
+        .collect::<Result<Vec<&str>, _>>()
+        .unwrap();
+      for chunk in chunks {
+        self.communicate(&format!("PAYLOAD_CHUNK: {}", chunk), "", &stdin, &mut reader)
+      }
+      self.communicate("PAYLOAD_END", "PAYLOAD_OK", &stdin, &mut reader);
+    }
+    self.communicate("WORK", "OK", &stdin, &mut reader);
 
     self.stdout = Some(reader);
     self.stdin = Some(stdin);
 
     println!("[worker {}] task finished", self.id);
     self.idle = true;
+  }
+
+  pub fn communicate(
+    &self,
+    send: &str,
+    wait: &str,
+    mut stdin: &ChildStdin,
+    reader: &mut BufReader<ChildStdout>,
+  ) {
+    if !send.is_empty() {
+      println!("[worker {}] send {} to child stdin", self.id, send);
+      stdin.write_all(format!("{}\n", send).as_bytes()).unwrap();
+    }
+    if !wait.is_empty() {
+      println!("[worker {}] waiting for {}", self.id, wait);
+      loop {
+        let mut ln = String::new();
+        reader.read_line(&mut ln).unwrap();
+        println!("[worker {}] (stdout) {}", self.id, ln.clone().trim());
+        if ln == format!("{}\n", wait) {
+          println!("[worker {}] {} received", self.id, wait);
+          break;
+        }
+      }
+    }
   }
 }

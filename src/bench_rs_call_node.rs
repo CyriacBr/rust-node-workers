@@ -6,11 +6,11 @@ use std::{
   thread,
 };
 
-use interprocess::local_socket::{LocalSocketListener, LocalSocketStream};
 use napi::{
   threadsafe_function::{ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode},
   JsFunction, Result,
 };
+use serde_json::json;
 
 use crate::worker_pool::WorkerPool;
 
@@ -67,6 +67,10 @@ pub fn do_rs_task_from_cmd() {
 #[napi]
 pub fn do_rs_task_from_workers() {
   let mut pool = WorkerPool::setup(4);
-  pool.run_task("task-worker", 4);
-  pool.run_task("task-worker", 4);
+  pool.run_task(
+    "task-worker",
+    vec![Some(json!({
+        "value": 40,
+    }))],
+  );
 }

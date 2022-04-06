@@ -7,9 +7,9 @@ use std::{
     Arc, Mutex,
   },
 };
+use serde_json::{Value};
 
 use crate::worker::Worker;
-use crossbeam::thread;
 
 pub struct WorkerPool {
   pub workers: Vec<Arc<Mutex<Worker>>>,
@@ -26,13 +26,13 @@ impl WorkerPool {
     }
   }
 
-  pub fn run_task(&mut self, file_path: &str, times: usize) {
+  pub fn run_task(&mut self, file_path: &str, payloads: Vec<Option<Value>>) {
     println!("[pool] running tasks");
     let mut handles = Vec::new();
-    for _n in 0..times {
-      println!("[pool] (task {}) start of iteration", _n);
+    for (n, payload) in payloads.into_iter().enumerate() {
+      println!("[pool] (task {}) start of iteration", n);
       let worker = self.get_available_worker();
-      println!("[pool] (task {}) got worker {}", _n, worker.lock().unwrap().id);
+      println!("[pool] (task {}) got worker {}", n, worker.lock().unwrap().id);
       let file_path = String::from(file_path);
       // let (sender, receiver) = mpsc::channel();
       let waiting = self.waiting.clone();
@@ -42,14 +42,14 @@ impl WorkerPool {
         worker.lock().unwrap().init(file_path.as_str());
         // sender.send(1);
         *waiting.lock().unwrap().get_mut() += 1;
-        worker.lock().unwrap().perform_task();
+        worker.lock().unwrap().perform_task(payload);
         println!("[pool] performed task on worker {}", worker.lock().unwrap().id);
         *waiting.lock().unwrap().get_mut() -= 1;
         // sender.send(-1);
       });
 
       handles.push(handle);
-      println!("[pool] (task {}) end of iteration", _n);
+      println!("[pool] (task {}) end of iteration", n);
     }
     for handle in handles {
       handle.join().unwrap();
