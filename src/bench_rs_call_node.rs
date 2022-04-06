@@ -69,6 +69,7 @@ pub fn do_rs_task_from_workers() {
   let mut pool = WorkerPool::setup(4);
   pool.run_task(
     "task-worker",
+    "fib",
     vec![Some(json!({
         "value": 40,
     }))],

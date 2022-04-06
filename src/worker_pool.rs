@@ -26,7 +26,7 @@ impl WorkerPool {
     }
   }
 
-  pub fn run_task(&mut self, file_path: &str, payloads: Vec<Option<Value>>) {
+  pub fn run_task(&mut self, file_path: &str, cmd: &str, payloads: Vec<Option<Value>>) {
     println!("[pool] running tasks");
     let mut handles = Vec::new();
     for (n, payload) in payloads.into_iter().enumerate() {
@@ -36,13 +36,14 @@ impl WorkerPool {
       let file_path = String::from(file_path);
       // let (sender, receiver) = mpsc::channel();
       let waiting = self.waiting.clone();
+      let cmd = cmd.to_string();
 
       let handle = std::thread::spawn(move || {
         let worker = worker.clone();
         worker.lock().unwrap().init(file_path.as_str());
         // sender.send(1);
         *waiting.lock().unwrap().get_mut() += 1;
-        worker.lock().unwrap().perform_task(payload);
+        worker.lock().unwrap().perform_task(cmd, payload);
         println!("[pool] performed task on worker {}", worker.lock().unwrap().id);
         *waiting.lock().unwrap().get_mut() -= 1;
         // sender.send(-1);

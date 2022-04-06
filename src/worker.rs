@@ -43,7 +43,7 @@ impl Worker {
     self.child = Some(child);
   }
 
-  pub fn perform_task(&mut self, payload: Option<Value>) {
+  pub fn perform_task(&mut self, cmd: String, payload: Option<Value>) {
     self.idle = false;
 
     let mut reader = self.stdout.take().unwrap();
@@ -68,7 +68,7 @@ impl Worker {
       }
       self.communicate("PAYLOAD_END", "PAYLOAD_OK", &stdin, &mut reader);
     }
-    self.communicate("WORK", "OK", &stdin, &mut reader);
+    self.communicate(&format!("CMD: {}", cmd), "OK", &stdin, &mut reader);
 
     self.stdout = Some(reader);
     self.stdin = Some(stdin);
