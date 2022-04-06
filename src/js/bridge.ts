@@ -41,7 +41,14 @@ export function bridge(tasks: Tasks, opts: Options = {}) {
           const cmd = line.replace("CMD:", "").trim();
           const task = tasks[cmd];
           debug("executing command: ", cmd);
-          task?.(payload);
+          const res = task?.(payload);
+          if (res) {
+            const str = JSON.stringify(res);
+            const chunks = str.match(/.{1,1000}/g) || [];
+            for (const chunk of chunks) {
+              console.log(`RESULT_CHUNK: ${chunk}`);
+            }
+          }
           console.log("OK");
         }
         break;

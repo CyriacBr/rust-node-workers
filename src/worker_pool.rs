@@ -1,3 +1,5 @@
+use serde::{de::DeserializeOwned, Deserialize};
+use serde_json::Value;
 use std::{
   cell::RefCell,
   rc::Rc,
@@ -7,7 +9,6 @@ use std::{
     Arc, Mutex,
   },
 };
-use serde_json::{Value};
 
 use crate::worker::Worker;
 
@@ -26,13 +27,22 @@ impl WorkerPool {
     }
   }
 
-  pub fn run_task(&mut self, file_path: &str, cmd: &str, payloads: Vec<Option<Value>>) {
+  pub fn run_task<T: DeserializeOwned>(
+    &mut self,
+    file_path: &str,
+    cmd: &str,
+    payloads: Vec<Option<Value>>,
+  ) -> Vec<Option<T>> {
     println!("[pool] running tasks");
     let mut handles = Vec::new();
     for (n, payload) in payloads.into_iter().enumerate() {
       println!("[pool] (task {}) start of iteration", n);
       let worker = self.get_available_worker();
-      println!("[pool] (task {}) got worker {}", n, worker.lock().unwrap().id);
+      println!(
+        "[pool] (task {}) got worker {}",
+        n,
+        worker.lock().unwrap().id
+      );
       let file_path = String::from(file_path);
       // let (sender, receiver) = mpsc::channel();
       let waiting = self.waiting.clone();
@@ -43,18 +53,29 @@ impl WorkerPool {
         worker.lock().unwrap().init(file_path.as_str());
         // sender.send(1);
         *waiting.lock().unwrap().get_mut() += 1;
-        worker.lock().unwrap().perform_task(cmd, payload);
-        println!("[pool] performed task on worker {}", worker.lock().unwrap().id);
+        let res = worker.lock().unwrap().perform_task(cmd, payload);
+        println!(
+          "[pool] performed task on worker {}",
+          worker.lock().unwrap().id
+        );
         *waiting.lock().unwrap().get_mut() -= 1;
         // sender.send(-1);
+        return res;
       });
 
       handles.push(handle);
       println!("[pool] (task {}) end of iteration", n);
     }
-    for handle in handles {
-      handle.join().unwrap();
-    }
+
+    handles
+      .into_iter()
+      .enumerate()
+      .map(|(n, x)| {
+        let str = x.join().unwrap();
+        println!("[pool] (thread {}) result: {:?}", n, str);
+        str.map(|x| serde_json::from_str(&x).unwrap())
+      })
+      .collect()
   }
 
   fn get_available_worker(&mut self) -> Arc<Mutex<Worker>> {

@@ -22,7 +22,8 @@ bridge({
   getUser: () => {
     return {
       name: 'Foo',
-      age: 50
+      age: 50,
+      phones: ['a', 'b']
     };
   }
 });

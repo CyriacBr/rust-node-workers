@@ -40,7 +40,14 @@ function bridge(tasks, opts = {}) {
                     const cmd = line.replace("CMD:", "").trim();
                     const task = tasks[cmd];
                     debug("executing command: ", cmd);
-                    task === null || task === void 0 ? void 0 : task(payload);
+                    const res = task === null || task === void 0 ? void 0 : task(payload);
+                    if (res) {
+                        const str = JSON.stringify(res);
+                        const chunks = str.match(/.{1,1000}/g) || [];
+                        for (const chunk of chunks) {
+                            console.log(`RESULT_CHUNK: ${chunk}`);
+                        }
+                    }
                     console.log("OK");
                 }
                 break;

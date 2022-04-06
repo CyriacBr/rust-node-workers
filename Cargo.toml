@@ -11,6 +11,7 @@ crate-type = ["cdylib"]
 napi = { version = "2.2.0", default-features = false, features = ["napi4"] }
 napi-derive = "2.2.0"
 serde_json = "1.0.79"
+serde = { version = "1.0.136", features = ["derive"] }
 
 [build-dependencies]
 napi-build = "1.2.1"

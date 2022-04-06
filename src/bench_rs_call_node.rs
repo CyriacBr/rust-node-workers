@@ -64,14 +64,32 @@ pub fn do_rs_task_from_cmd() {
   }
 }
 
+
+
+use serde::{Deserialize, Serialize};
+  
+#[derive(Serialize, Deserialize, Debug)]
+struct Person {
+  name: String,
+  age: u8,
+  phones: Vec<String>,
+}
+
 #[napi]
 pub fn do_rs_task_from_workers() {
+
   let mut pool = WorkerPool::setup(4);
-  pool.run_task(
+  pool.run_task::<()>(
     "task-worker",
     "fib",
     vec![Some(json!({
         "value": 40,
     }))],
   );
+  let person = pool.run_task::<Person>(
+    "task-worker",
+    "getUser",
+    vec![None],
+  );
+  println!("{:#?}", person);
 }

@@ -1,7 +1,6 @@
 use std::{
   io::{BufRead, BufReader, Write},
   process::{Child, ChildStdin, ChildStdout, Command, Stdio},
-  thread,
 };
 
 use serde_json::Value;
@@ -43,11 +42,11 @@ impl Worker {
     self.child = Some(child);
   }
 
-  pub fn perform_task(&mut self, cmd: String, payload: Option<Value>) {
+  pub fn perform_task(&mut self, cmd: String, payload: Option<Value>) -> Option<String> {
     self.idle = false;
 
     let mut reader = self.stdout.take().unwrap();
-    let mut stdin = self.stdin.take().unwrap();
+    let stdin = self.stdin.take().unwrap();
 
     if !self.ready {
       self.communicate("", "READY", &stdin, &mut reader);
@@ -64,17 +63,24 @@ impl Worker {
         .collect::<Result<Vec<&str>, _>>()
         .unwrap();
       for chunk in chunks {
-        self.communicate(&format!("PAYLOAD_CHUNK: {}", chunk), "", &stdin, &mut reader)
+        self.communicate(
+          &format!("PAYLOAD_CHUNK: {}", chunk),
+          "",
+          &stdin,
+          &mut reader,
+        );
       }
       self.communicate("PAYLOAD_END", "PAYLOAD_OK", &stdin, &mut reader);
     }
-    self.communicate(&format!("CMD: {}", cmd), "OK", &stdin, &mut reader);
+    let result_str = self.communicate(&format!("CMD: {}", cmd), "OK", &stdin, &mut reader);
 
     self.stdout = Some(reader);
     self.stdin = Some(stdin);
 
     println!("[worker {}] task finished", self.id);
     self.idle = true;
+
+    result_str
   }
 
   pub fn communicate(
@@ -83,22 +89,31 @@ impl Worker {
     wait: &str,
     mut stdin: &ChildStdin,
     reader: &mut BufReader<ChildStdout>,
-  ) {
+  ) -> Option<String> {
     if !send.is_empty() {
       println!("[worker {}] send {} to child stdin", self.id, send);
       stdin.write_all(format!("{}\n", send).as_bytes()).unwrap();
     }
     if !wait.is_empty() {
       println!("[worker {}] waiting for {}", self.id, wait);
+      let mut payload_str = String::new();
       loop {
         let mut ln = String::new();
         reader.read_line(&mut ln).unwrap();
         println!("[worker {}] (stdout) {}", self.id, ln.clone().trim());
         if ln == format!("{}\n", wait) {
           println!("[worker {}] {} received", self.id, wait);
-          break;
+          return if payload_str.is_empty() {
+            None
+          } else {
+            Some(payload_str)
+          };
+        } else if ln.starts_with("RESULT_CHUNK:") {
+          println!("[worker {}] received result chunk", self.id);
+          payload_str += &ln.replace("RESULT_CHUNK:", "").trim();
         }
       }
     }
+    None
   }
 }
