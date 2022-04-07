@@ -15,7 +15,7 @@ use crate::worker::Worker;
 pub struct WorkerPool {
   pub workers: Vec<Arc<Mutex<Worker>>>,
   pub max_workers: usize,
-  pub waiting: Arc<Mutex<AtomicUsize>>,
+  pub busy_counter: Arc<AtomicUsize>,
 }
 
 impl WorkerPool {
@@ -23,7 +23,7 @@ impl WorkerPool {
     WorkerPool {
       workers: Vec::new(),
       max_workers,
-      waiting: Arc::new(Mutex::new(AtomicUsize::new(0))),
+      busy_counter: Arc::new(AtomicUsize::new(0)),
     }
   }
 
@@ -38,28 +38,25 @@ impl WorkerPool {
     for (n, payload) in payloads.into_iter().enumerate() {
       println!("[pool] (task {}) start of iteration", n);
       let worker = self.get_available_worker();
+      self.busy_counter.fetch_add(1, Ordering::SeqCst);
       println!(
         "[pool] (task {}) got worker {}",
         n,
         worker.lock().unwrap().id
       );
       let file_path = String::from(file_path);
-      // let (sender, receiver) = mpsc::channel();
-      let waiting = self.waiting.clone();
+      let waiting = self.busy_counter.clone();
       let cmd = cmd.to_string();
 
       let handle = std::thread::spawn(move || {
         let worker = worker.clone();
         worker.lock().unwrap().init(file_path.as_str());
-        // sender.send(1);
-        *waiting.lock().unwrap().get_mut() += 1;
         let res = worker.lock().unwrap().perform_task(cmd, payload);
         println!(
           "[pool] performed task on worker {}",
           worker.lock().unwrap().id
         );
-        *waiting.lock().unwrap().get_mut() -= 1;
-        // sender.send(-1);
+        waiting.fetch_sub(1, Ordering::SeqCst);
         return res;
       });
 
@@ -99,7 +96,7 @@ impl WorkerPool {
     }
     println!("[pool] waiting for worker to be free");
     loop {
-      if self.waiting.lock().unwrap().load(Ordering::SeqCst) == 0 {
+      if self.busy_counter.load(Ordering::SeqCst) == 0 {
         println!("[pool] pool is free");
         break;
       }

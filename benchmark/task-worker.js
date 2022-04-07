@@ -15,9 +15,9 @@ function fib(n) {
 
 bridge({
   fib: (payload) => {
-    console.log("fib task start");
+    console.log(`fib ${payload.value} task start`);
     const val = fib(payload.value);
-    console.log("fib task end: ", val);
+    console.log(`fib ${payload.value} task end: `, val);
   },
   getUser: () => {
     return {
