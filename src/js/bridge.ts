@@ -5,6 +5,7 @@ type Tasks = Record<string, Task>;
 interface Options {
   debug?: boolean;
 }
+type Payload = {_inner_payload?: any};
 
 export function bridge(tasks: Tasks, opts: Options = {}) {
   const rl = readline.createInterface({
@@ -19,12 +20,15 @@ export function bridge(tasks: Tasks, opts: Options = {}) {
   }
 
   let payloadStr = "";
-  let payload: object | null = null;
+  let payload: Payload | null = null;
   let payloadStart: number | null = null;
   rl.on("line", function (line) {
     switch (line) {
       case "PAYLOAD_END":
         payload = JSON.parse(payloadStr);
+        if (payload?._inner_payload) {
+          payload = payload?._inner_payload;
+        }
         payloadStr = "";
         debug("payload received in", Date.now() - payloadStart!, "ms");
         payloadStart = null;

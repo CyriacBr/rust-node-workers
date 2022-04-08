@@ -14,6 +14,7 @@ pub struct Worker {
   pub ready: bool,
 }
 
+// TODO: handle cmd error
 impl Worker {
   pub fn new(id: usize) -> Worker {
     Worker {
@@ -42,7 +43,7 @@ impl Worker {
     self.child = Some(child);
   }
 
-  pub fn perform_task(&mut self, cmd: String, payload: Option<Value>) -> Option<String> {
+  pub fn perform_task(&mut self, cmd: String, payload: Value) -> Option<String> {
     self.idle = false;
 
     let mut reader = self.stdout.take().unwrap();
@@ -54,7 +55,7 @@ impl Worker {
     }
 
     println!("[worker {}] is ready", self.id);
-    if let Some(payload) = payload {
+    if !payload.is_null() {
       let payload_str = payload.to_string();
       let chunks = payload_str
         .as_bytes()
@@ -100,6 +101,9 @@ impl Worker {
       loop {
         let mut ln = String::new();
         reader.read_line(&mut ln).unwrap();
+        if ln.trim().is_empty() {
+          continue;
+        }
         println!("[worker {}] (stdout) {}", self.id, ln.clone().trim());
         if ln == format!("{}\n", wait) {
           println!("[worker {}] {} received", self.id, wait);

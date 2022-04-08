@@ -1,16 +1,10 @@
-use serde::{de::DeserializeOwned, Deserialize};
-use serde_json::Value;
-use std::{
-  cell::RefCell,
-  rc::Rc,
-  sync::{
-    atomic::{AtomicUsize, Ordering},
-    mpsc::{self, Receiver, Sender},
-    Arc, Mutex,
-  },
+use serde::de::DeserializeOwned;
+use std::sync::{
+  atomic::{AtomicUsize, Ordering},
+  Arc, Mutex,
 };
 
-use crate::worker::Worker;
+use crate::{as_payload::AsPayload, worker::Worker};
 
 pub struct WorkerPool {
   pub workers: Vec<Arc<Mutex<Worker>>>,
@@ -27,15 +21,19 @@ impl WorkerPool {
     }
   }
 
-  pub fn run_task<T: DeserializeOwned>(
+  pub fn run_task<T: DeserializeOwned, P: AsPayload>(
     &mut self,
     file_path: &str,
     cmd: &str,
-    payloads: Vec<Option<Value>>,
+    payloads: Vec<P>,
   ) -> Vec<Option<T>> {
     println!("[pool] running tasks");
     let mut handles = Vec::new();
-    for (n, payload) in payloads.into_iter().enumerate() {
+    for (n, payload) in payloads
+      .into_iter()
+      .map(|x| x.as_payload())
+      .enumerate()
+    {
       println!("[pool] (task {}) start of iteration", n);
       let worker = self.get_available_worker();
       self.busy_counter.fetch_add(1, Ordering::SeqCst);
@@ -104,26 +102,3 @@ impl WorkerPool {
     self.get_available_worker()
   }
 }
-
-// pub struct WorkerPool {
-//   inner: Arc<WorkerPool>,
-// }
-
-// impl WorkerPool {
-//   pub fn setup() -> WorkerPool {
-//     WorkerPool {
-//       inner: Arc::new(WorkerPool::setup()),
-//     }
-//   }
-
-//   pub fn run_tasks(&mut self, file_path: &str) {
-//     thread::scope(|s| {
-//       for _n in 0..=4 {
-//         let pool = self.inner.clone();
-//         s.spawn(move |_| {
-//           pool.run_task(file_path);
-//         });
-//       }
-//     });
-//   }
-// }
