@@ -10,7 +10,7 @@ use napi::{
   threadsafe_function::{ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode},
   JsFunction, Result,
 };
-use serde_json::json;
+use serde_json::{json, Value};
 
 use crate::worker_pool::WorkerPool;
 
@@ -76,18 +76,15 @@ struct Person {
 #[napi]
 pub fn do_rs_task_from_workers() {
   let mut pool = WorkerPool::setup(4);
-  pool.run_task::<()>(
-    "task-worker",
-    "fib",
-    (0..8)
-      .into_iter()
-      .map(|n| {
-        Some(json!({
-            "value": 6 * n,
-        }))
-      })
-      .collect(),
-  );
+  let payloads = (0..8)
+    .into_iter()
+    .map(|n| {
+      Some(json!({
+          "value": 6u32 * n,
+      }))
+    })
+    .collect();
+  pool.run_task::<(), _>("task-worker", "fib", payloads);
   // let person = pool.run_task::<Person>("task-worker", "getUser", vec![None]);
   // println!("{:#?}", person);
 }

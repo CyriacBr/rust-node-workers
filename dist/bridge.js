@@ -23,6 +23,9 @@ function bridge(tasks, opts = {}) {
         switch (line) {
             case "PAYLOAD_END":
                 payload = JSON.parse(payloadStr);
+                if (payload === null || payload === void 0 ? void 0 : payload._inner_payload) {
+                    payload = payload === null || payload === void 0 ? void 0 : payload._inner_payload;
+                }
                 payloadStr = "";
                 debug("payload received in", Date.now() - payloadStart, "ms");
                 payloadStart = null;
