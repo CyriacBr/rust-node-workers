@@ -114,7 +114,7 @@ impl Worker {
           };
         } else if ln.starts_with("RESULT_CHUNK:") {
           println!("[worker {}] received result chunk", self.id);
-          payload_str += &ln.replace("RESULT_CHUNK:", "").trim();
+          payload_str += ln.replace("RESULT_CHUNK:", "").trim();
         }
       }
     }

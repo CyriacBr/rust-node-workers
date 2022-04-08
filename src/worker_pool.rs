@@ -31,7 +31,7 @@ impl WorkerPool {
     let mut handles = Vec::new();
     for (n, payload) in payloads
       .into_iter()
-      .map(|x| x.as_payload())
+      .map(|x| x.to_payload())
       .enumerate()
     {
       println!("[pool] (task {}) start of iteration", n);
@@ -55,7 +55,7 @@ impl WorkerPool {
           worker.lock().unwrap().id
         );
         waiting.fetch_sub(1, Ordering::SeqCst);
-        return res;
+        res
       });
 
       handles.push(handle);
