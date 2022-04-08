@@ -4,12 +4,13 @@ use std::sync::{
   Arc, Mutex,
 };
 
-use crate::{as_payload::AsPayload, worker::Worker};
+use crate::{as_payload::AsPayload, print_debug, worker::Worker};
 
 pub struct WorkerPool {
   pub workers: Vec<Arc<Mutex<Worker>>>,
   pub max_workers: usize,
   pub busy_counter: Arc<AtomicUsize>,
+  pub debug: bool,
 }
 
 impl WorkerPool {
@@ -18,7 +19,12 @@ impl WorkerPool {
       workers: Vec::new(),
       max_workers,
       busy_counter: Arc::new(AtomicUsize::new(0)),
+      debug: false,
     }
+  }
+
+  pub fn with_debug(&mut self, debug: bool) {
+    self.debug = debug;
   }
 
   pub fn run_task<T: DeserializeOwned, P: AsPayload>(
@@ -27,17 +33,14 @@ impl WorkerPool {
     cmd: &str,
     payloads: Vec<P>,
   ) -> Vec<Option<T>> {
-    println!("[pool] running tasks");
+    print_debug!(self.debug, "[pool] running tasks");
     let mut handles = Vec::new();
-    for (n, payload) in payloads
-      .into_iter()
-      .map(|x| x.to_payload())
-      .enumerate()
-    {
-      println!("[pool] (task {}) start of iteration", n);
+    for (n, payload) in payloads.into_iter().map(|x| x.to_payload()).enumerate() {
+      print_debug!(self.debug, "[pool] (task {}) start of iteration", n);
       let worker = self.get_available_worker();
       self.busy_counter.fetch_add(1, Ordering::SeqCst);
-      println!(
+      print_debug!(
+        self.debug,
         "[pool] (task {}) got worker {}",
         n,
         worker.lock().unwrap().id
@@ -45,12 +48,14 @@ impl WorkerPool {
       let file_path = String::from(file_path);
       let waiting = self.busy_counter.clone();
       let cmd = cmd.to_string();
+      let debug = self.debug;
 
       let handle = std::thread::spawn(move || {
         let worker = worker.clone();
         worker.lock().unwrap().init(file_path.as_str());
         let res = worker.lock().unwrap().perform_task(cmd, payload);
-        println!(
+        print_debug!(
+          debug,
           "[pool] performed task on worker {}",
           worker.lock().unwrap().id
         );
@@ -59,7 +64,7 @@ impl WorkerPool {
       });
 
       handles.push(handle);
-      println!("[pool] (task {}) end of iteration", n);
+      print_debug!(self.debug, "[pool] (task {}) end of iteration", n);
     }
 
     handles
@@ -67,7 +72,7 @@ impl WorkerPool {
       .enumerate()
       .map(|(n, x)| {
         let str = x.join().unwrap();
-        println!("[pool] (thread {}) result: {:?}", n, str);
+        print_debug!(self.debug, "[pool] (thread {}) result: {:?}", n, str);
         str.map(|x| serde_json::from_str(&x).unwrap())
       })
       .collect()
@@ -82,20 +87,20 @@ impl WorkerPool {
     });
     if let Some(idle_worker) = idle_worker {
       idle_worker.lock().unwrap().idle = false;
-      println!("[pool] found idle worker");
+      print_debug!(self.debug, "[pool] found idle worker");
       return idle_worker.clone();
     }
     if self.workers.len() < self.max_workers {
-      let mut worker = Worker::new(self.workers.len() + 1);
+      let mut worker = Worker::new(self.workers.len() + 1, self.debug);
       worker.idle = false;
       self.workers.push(Arc::new(Mutex::new(worker)));
-      println!("[pool] created new worker");
+      print_debug!(self.debug, "[pool] created new worker");
       return self.workers.last().unwrap().clone();
     }
-    println!("[pool] waiting for worker to be free");
+    print_debug!(self.debug, "[pool] waiting for worker to be free");
     loop {
       if self.busy_counter.load(Ordering::SeqCst) == 0 {
-        println!("[pool] pool is free");
+        print_debug!(self.debug, "[pool] pool is free");
         break;
       }
     }

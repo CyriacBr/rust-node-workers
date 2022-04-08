@@ -5,6 +5,8 @@ use std::{
 
 use serde_json::Value;
 
+use crate::print_debug;
+
 pub struct Worker {
   pub id: usize,
   pub child: Option<Child>,
@@ -12,11 +14,12 @@ pub struct Worker {
   pub stdin: Option<ChildStdin>,
   pub idle: bool,
   pub ready: bool,
+  pub debug: bool,
 }
 
 // TODO: handle cmd error
 impl Worker {
-  pub fn new(id: usize) -> Worker {
+  pub fn new(id: usize, debug: bool) -> Worker {
     Worker {
       id,
       child: None,
@@ -24,6 +27,7 @@ impl Worker {
       stdin: None,
       ready: false,
       idle: true,
+      debug,
     }
   }
 
@@ -39,7 +43,7 @@ impl Worker {
       .expect("failed to execute process");
     self.stdin = Some(child.stdin.take().unwrap());
     self.stdout = Some(BufReader::new(child.stdout.take().unwrap()));
-    println!("[worker {}] child spawned", self.id);
+    print_debug!(self.debug, "[worker {}] child spawned", self.id);
     self.child = Some(child);
   }
 
@@ -54,7 +58,7 @@ impl Worker {
       self.ready = true;
     }
 
-    println!("[worker {}] is ready", self.id);
+    print_debug!(self.debug, "[worker {}] is ready", self.id);
     if !payload.is_null() {
       let payload_str = payload.to_string();
       let chunks = payload_str
@@ -78,7 +82,7 @@ impl Worker {
     self.stdout = Some(reader);
     self.stdin = Some(stdin);
 
-    println!("[worker {}] task finished", self.id);
+    print_debug!(self.debug, "[worker {}] task finished", self.id);
     self.idle = true;
 
     result_str
@@ -92,11 +96,16 @@ impl Worker {
     reader: &mut BufReader<ChildStdout>,
   ) -> Option<String> {
     if !send.is_empty() {
-      println!("[worker {}] send {} to child stdin", self.id, send);
+      print_debug!(
+        self.debug,
+        "[worker {}] send {} to child stdin",
+        self.id,
+        send
+      );
       stdin.write_all(format!("{}\n", send).as_bytes()).unwrap();
     }
     if !wait.is_empty() {
-      println!("[worker {}] waiting for {}", self.id, wait);
+      print_debug!(self.debug, "[worker {}] waiting for {}", self.id, wait);
       let mut payload_str = String::new();
       loop {
         let mut ln = String::new();
@@ -104,16 +113,21 @@ impl Worker {
         if ln.trim().is_empty() {
           continue;
         }
-        println!("[worker {}] (stdout) {}", self.id, ln.clone().trim());
+        print_debug!(
+          self.debug,
+          "[worker {}] (stdout) {}",
+          self.id,
+          ln.clone().trim()
+        );
         if ln == format!("{}\n", wait) {
-          println!("[worker {}] {} received", self.id, wait);
+          print_debug!(self.debug, "[worker {}] {} received", self.id, wait);
           return if payload_str.is_empty() {
             None
           } else {
             Some(payload_str)
           };
         } else if ln.starts_with("RESULT_CHUNK:") {
-          println!("[worker {}] received result chunk", self.id);
+          print_debug!(self.debug, "[worker {}] received result chunk", self.id);
           payload_str += ln.replace("RESULT_CHUNK:", "").trim();
         }
       }

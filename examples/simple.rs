@@ -9,6 +9,7 @@ fn main() {
   {
     // Create a pool of 2 node workers
     let mut pool = WorkerPool::setup(2);
+    pool.with_debug(true);
     // Create 4 payloads
     let payloads = vec![10, 20, 30, 40];
     pool.run_task::<(), _>("examples/worker", "fib", payloads);
