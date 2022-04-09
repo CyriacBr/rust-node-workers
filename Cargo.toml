@@ -12,6 +12,7 @@ serde = { version = "1.0.136", features = ["derive"] }
 
 [dev-dependencies]
 criterion = "0.3"
+benchman = "0.2.6"
 
 [[bench]]
 name = "bench"

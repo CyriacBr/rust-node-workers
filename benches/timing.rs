@@ -1,11 +1,11 @@
+use benchman::*;
+use rust_node_workers::worker_pool::WorkerPool;
 use std::process::Command;
 
-use rust_node_workers::worker_pool::WorkerPool;
-
 fn main() {
-  fn standard_command() {
+  fn standard_command(worker_name: &str) {
     Command::new("node")
-      .arg("benches/workers/fast-inner")
+      .arg(&format!("benches/workers/{}", worker_name))
       .arg("30")
       .spawn()
       .unwrap()
@@ -13,32 +13,46 @@ fn main() {
       .unwrap();
   }
 
-  let mut pool = WorkerPool::setup(1);
-  let mut worker_pool = || {
-    pool.run_task::<(), _>("benches/workers/fast", "fib", vec![30]);
-  };
+  let bm = BenchMan::new("timing");
+  for worker_name in vec!["fast", "slow"] {
+    let std_name = &format!("{}-inner", worker_name);
 
-  {
-    println!("==== standard command");
-    let timer = std::time::Instant::now();
-    standard_command();
-    println!("first run: {:#?}ms", timer.elapsed().as_millis());
-    let timer = std::time::Instant::now();
-    for _ in 0..3 {
-      standard_command();
-    }
-    println!("subsequent 3 runs: {:#?}ms", timer.elapsed().as_millis());
-  }
+    let mut pool = WorkerPool::setup(1);
+    let mut worker_pool = |worker_name: &str| {
+      pool.run_task::<(), _>(
+        &format!("benches/workers/{}", worker_name),
+        "fib",
+        vec![30u32],
+      );
+    };
 
-  {
-    println!("==== worker pool");
-    let timer = std::time::Instant::now();
-    worker_pool();
-    println!("first run: {:#?}ms", timer.elapsed().as_millis());
-    let timer = std::time::Instant::now();
-    for _ in 0..3 {
-        worker_pool();
+    {
+      let _sw = bm.get_stopwatch(&format!("[{}] standard command - first run", worker_name));
+      standard_command(std_name);
     }
-    println!("subsequent 3 runs: {:#?}ms", timer.elapsed().as_millis());
+    {
+      let _sw = bm.get_stopwatch(&format!(
+        "[{}] standard command - subsequent 3 runs",
+        worker_name
+      ));
+      for _ in 0..3 {
+        standard_command(std_name);
+      }
+    }
+
+    {
+      let _sw = bm.get_stopwatch(&format!("[{}] worker pool - first run", worker_name));
+      worker_pool(worker_name);
+    }
+    {
+      let _sw = bm.get_stopwatch(&format!(
+        "[{}] worker pool - subsequent 3 runs",
+        worker_name
+      ));
+      for _ in 0..3 {
+        worker_pool(worker_name);
+      }
+    }
   }
+  println!("{}", bm);
 }
