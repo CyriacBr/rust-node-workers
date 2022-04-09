@@ -1,8 +1,8 @@
-use anyhow::{Context, Ok, Result, Error, bail};
+use anyhow::{Context, Ok, Result, bail};
 use serde_json::Value;
 use std::{
-  io::{BufRead, BufReader, Read, Write},
-  process::{Child, ChildStderr, ChildStdin, ChildStdout, Command, Stdio},
+  io::{BufRead, BufReader, Write},
+  process::{Child, ChildStdin, ChildStdout, Command, Stdio},
 };
 
 use crate::print_debug;
@@ -116,7 +116,7 @@ impl Worker {
     child: &mut Child,
   ) -> Result<Option<String>> {
     let status = child.try_wait()?;
-    if let Some(_) = status {
+    if status.is_some() {
       bail!("process no longer running");
     }
     if !send.is_empty() {
@@ -135,7 +135,7 @@ impl Worker {
       let mut payload_str = String::new();
       loop {
         let status = child.try_wait()?;
-        if let Some(_) = status {
+        if status.is_some() {
           bail!("process exited");
         }
         let mut ln = String::new();

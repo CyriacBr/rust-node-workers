@@ -1,5 +1,5 @@
 use crate::{as_payload::AsPayload, print_debug, worker::Worker};
-use anyhow::{Result, Context, bail};
+use anyhow::{Result, bail};
 use serde::de::DeserializeOwned;
 use std::{
   sync::{
@@ -142,8 +142,10 @@ impl WorkerPool {
   }
 }
 
+#[cfg(test)]
 mod tests {
-  use super::WorkerPool;
+    use crate::worker_pool::WorkerPool;
+
 
   #[test]
   pub fn create_worker_when_needed() {
