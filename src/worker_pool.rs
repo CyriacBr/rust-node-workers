@@ -1,7 +1,10 @@
 use serde::de::DeserializeOwned;
-use std::sync::{
-  atomic::{AtomicUsize, Ordering},
-  Arc, Mutex,
+use std::{
+  sync::{
+    atomic::{AtomicUsize, Ordering},
+    Arc, Mutex,
+  },
+  thread::JoinHandle,
 };
 
 use crate::{as_payload::AsPayload, print_debug, worker::Worker};
@@ -27,6 +30,39 @@ impl WorkerPool {
     self.debug = debug;
   }
 
+  pub fn run_worker<P: AsPayload>(
+    &mut self,
+    file_path: &str,
+    cmd: &str,
+    payload: P,
+  ) -> JoinHandle<Option<String>> {
+    let worker = self.get_available_worker();
+    self.busy_counter.fetch_add(1, Ordering::SeqCst);
+    print_debug!(
+      self.debug,
+      "[pool] got worker {}",
+      worker.lock().unwrap().id
+    );
+    let file_path = String::from(file_path);
+    let waiting = self.busy_counter.clone();
+    let cmd = cmd.to_string();
+    let debug = self.debug;
+    let payload = payload.to_payload();
+
+    std::thread::spawn(move || {
+      let worker = worker.clone();
+      worker.lock().unwrap().init(file_path.as_str());
+      let res = worker.lock().unwrap().perform_task(cmd, payload);
+      print_debug!(
+        debug,
+        "[pool] performed task on worker {}",
+        worker.lock().unwrap().id
+      );
+      waiting.fetch_sub(1, Ordering::SeqCst);
+      res
+    })
+  }
+
   pub fn run_task<T: DeserializeOwned, P: AsPayload>(
     &mut self,
     file_path: &str,
@@ -37,32 +73,7 @@ impl WorkerPool {
     let mut handles = Vec::new();
     for (n, payload) in payloads.into_iter().map(|x| x.to_payload()).enumerate() {
       print_debug!(self.debug, "[pool] (task {}) start of iteration", n);
-      let worker = self.get_available_worker();
-      self.busy_counter.fetch_add(1, Ordering::SeqCst);
-      print_debug!(
-        self.debug,
-        "[pool] (task {}) got worker {}",
-        n,
-        worker.lock().unwrap().id
-      );
-      let file_path = String::from(file_path);
-      let waiting = self.busy_counter.clone();
-      let cmd = cmd.to_string();
-      let debug = self.debug;
-
-      let handle = std::thread::spawn(move || {
-        let worker = worker.clone();
-        worker.lock().unwrap().init(file_path.as_str());
-        let res = worker.lock().unwrap().perform_task(cmd, payload);
-        print_debug!(
-          debug,
-          "[pool] performed task on worker {}",
-          worker.lock().unwrap().id
-        );
-        waiting.fetch_sub(1, Ordering::SeqCst);
-        res
-      });
-
+      let handle = self.run_worker(file_path, cmd, payload);
       handles.push(handle);
       print_debug!(self.debug, "[pool] (task {}) end of iteration", n);
     }
@@ -105,5 +116,44 @@ impl WorkerPool {
       }
     }
     self.get_available_worker()
+  }
+}
+
+mod tests {
+  use super::WorkerPool;
+
+  #[test]
+  pub fn create_worker_when_needed() {
+    let mut pool = WorkerPool::setup(1);
+    assert_eq!(pool.workers.len(), 0);
+
+    pool.get_available_worker();
+    assert_eq!(pool.workers.len(), 1);
+  }
+
+  #[test]
+  pub fn same_idle_worker() {
+    let mut pool = WorkerPool::setup(1);
+    let worker_id = pool.get_available_worker().lock().unwrap().id;
+    let other_worker_id = pool.get_available_worker().lock().unwrap().id;
+    assert_eq!(worker_id, other_worker_id);
+  }
+
+  #[test]
+  pub fn create_new_worker_when_busy() {
+    let mut pool = WorkerPool::setup(2);
+    pool.run_worker("examples/worker", "fib2", 40);
+
+    let worker_id = pool.get_available_worker().lock().unwrap().id;
+    assert_eq!(worker_id, 2);
+  }
+
+  #[test]
+  pub fn reuse_worker_when_full() {
+    let mut pool = WorkerPool::setup(1);
+    pool.run_worker("examples/worker", "fib2", 40);
+
+    let worker_id = pool.get_available_worker().lock().unwrap().id;
+    assert_eq!(worker_id, 1);
   }
 }
