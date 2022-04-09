@@ -12,7 +12,9 @@ fn main() {
     pool.with_debug(true);
     // Create 4 payloads
     let payloads = vec![10, 20, 30, 40];
-    pool.run_task::<(), _>("examples/worker", "fib", payloads);
+    pool
+      .run_task::<(), _>("examples/worker", "fib", payloads)
+      .unwrap();
   }
 
   {
@@ -20,9 +22,13 @@ fn main() {
     let mut pool = WorkerPool::setup(1);
     // Create 2 empty payloads - the task doesn't need any
     let payloads = vec![EmptyPayload::new(), EmptyPayload::new()];
-    pool.run_task::<(), _>("examples/worker", "ping", payloads);
+    pool
+      .run_task::<(), _>("examples/worker", "ping", payloads)
+      .unwrap();
     // or
-    pool.run_task::<(), _>("examples/worker", "ping", EmptyPayload::bulk(2));
+    pool
+      .run_task::<(), _>("examples/worker", "ping", EmptyPayload::bulk(2))
+      .unwrap();
   }
 
   {
@@ -30,7 +36,9 @@ fn main() {
     let mut pool = WorkerPool::setup(1);
     // Create 3 payloads of different types
     let payloads = make_payloads!(EmptyPayload::new(), 20, "test");
-    pool.run_task::<(), _>("examples/worker", "ping", payloads);
+    pool
+      .run_task::<(), _>("examples/worker", "ping", payloads)
+      .unwrap();
   }
 
   {
@@ -48,6 +56,8 @@ fn main() {
       .into_iter()
       .map(|x| json!(x))
       .collect();
-    pool.run_task::<(), _>("examples/worker", "ping", payloads);
+    pool
+      .run_task::<(), _>("examples/worker", "ping", payloads)
+      .unwrap();
   }
 }

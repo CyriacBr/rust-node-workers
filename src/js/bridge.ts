@@ -44,6 +44,9 @@ export function bridge(tasks: Tasks, opts: Options = {}) {
         } else if (line.startsWith("CMD:")) {
           const cmd = line.replace("CMD:", "").trim();
           const task = tasks[cmd];
+          if (!task) {
+            throw new Error(`Task "${cmd}" not found for this worker`);
+          }
           debug("executing command: ", cmd);
           const res = task?.(payload);
           if (res) {

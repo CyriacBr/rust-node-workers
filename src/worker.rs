@@ -1,9 +1,9 @@
-use std::{
-  io::{BufRead, BufReader, Write},
-  process::{Child, ChildStdin, ChildStdout, Command, Stdio},
-};
-
+use anyhow::{Context, Ok, Result, Error, bail};
 use serde_json::Value;
+use std::{
+  io::{BufRead, BufReader, Read, Write},
+  process::{Child, ChildStderr, ChildStdin, ChildStdout, Command, Stdio},
+};
 
 use crate::print_debug;
 
@@ -31,30 +31,36 @@ impl Worker {
     }
   }
 
-  pub fn init(&mut self, file_path: &str) {
+  pub fn init(&mut self, file_path: &str) -> Result<()> {
     if self.child.is_some() {
-      return;
+      return Ok(());
     }
     let mut child = Command::new("node")
       .arg(file_path)
       .stdin(Stdio::piped())
       .stdout(Stdio::piped())
       .spawn()
-      .expect("failed to execute process");
-    self.stdin = Some(child.stdin.take().unwrap());
-    self.stdout = Some(BufReader::new(child.stdout.take().unwrap()));
+      .context("execute process")?;
+    self.stdin = Some(child.stdin.take().context("get process stdin")?);
+    self.stdout = Some(BufReader::new(
+      child.stdout.take().context("take process stdout")?,
+    ));
     print_debug!(self.debug, "[worker {}] child spawned", self.id);
     self.child = Some(child);
+    Ok(())
   }
 
-  pub fn perform_task(&mut self, cmd: String, payload: Value) -> Option<String> {
+  pub fn perform_task(&mut self, cmd: String, payload: Value) -> Result<Option<String>> {
     self.idle = false;
 
     let mut reader = self.stdout.take().unwrap();
     let stdin = self.stdin.take().unwrap();
+    let mut child = self.child.take().unwrap();
 
     if !self.ready {
-      self.communicate("", "READY", &stdin, &mut reader);
+      self
+        .communicate("", "READY", &stdin, &mut reader, &mut child)
+        .context("communicating with process")?;
       self.ready = true;
     }
 
@@ -65,27 +71,40 @@ impl Worker {
         .as_bytes()
         .chunks(1000)
         .map(std::str::from_utf8)
-        .collect::<Result<Vec<&str>, _>>()
-        .unwrap();
+        .collect::<Result<Vec<&str>, _>>()?;
       for chunk in chunks {
-        self.communicate(
-          &format!("PAYLOAD_CHUNK: {}", chunk),
-          "",
-          &stdin,
-          &mut reader,
-        );
+        self
+          .communicate(
+            &format!("PAYLOAD_CHUNK: {}", chunk),
+            "",
+            &stdin,
+            &mut reader,
+            &mut child,
+          )
+          .context("communicating with process")?;
       }
-      self.communicate("PAYLOAD_END", "PAYLOAD_OK", &stdin, &mut reader);
+      self
+        .communicate("PAYLOAD_END", "PAYLOAD_OK", &stdin, &mut reader, &mut child)
+        .context("communicating with process")?;
     }
-    let result_str = self.communicate(&format!("CMD: {}", cmd), "OK", &stdin, &mut reader);
+    let result_str = self
+      .communicate(
+        &format!("CMD: {}", cmd),
+        "OK",
+        &stdin,
+        &mut reader,
+        &mut child,
+      )
+      .context("communicating with process")?;
 
     self.stdout = Some(reader);
     self.stdin = Some(stdin);
+    self.child = Some(child);
 
     print_debug!(self.debug, "[worker {}] task finished", self.id);
     self.idle = true;
 
-    result_str
+    Ok(result_str)
   }
 
   pub fn communicate(
@@ -94,7 +113,12 @@ impl Worker {
     wait: &str,
     mut stdin: &ChildStdin,
     reader: &mut BufReader<ChildStdout>,
-  ) -> Option<String> {
+    child: &mut Child,
+  ) -> Result<Option<String>> {
+    let status = child.try_wait()?;
+    if let Some(_) = status {
+      bail!("process no longer running");
+    }
     if !send.is_empty() {
       print_debug!(
         self.debug,
@@ -102,14 +126,22 @@ impl Worker {
         self.id,
         send
       );
-      stdin.write_all(format!("{}\n", send).as_bytes()).unwrap();
+      stdin
+        .write_all(format!("{}\n", send).as_bytes())
+        .context("writing to process stdin")?;
     }
     if !wait.is_empty() {
       print_debug!(self.debug, "[worker {}] waiting for {}", self.id, wait);
       let mut payload_str = String::new();
       loop {
+        let status = child.try_wait()?;
+        if let Some(_) = status {
+          bail!("process exited");
+        }
         let mut ln = String::new();
-        reader.read_line(&mut ln).unwrap();
+        reader
+          .read_line(&mut ln)
+          .context("reading to process stdout")?;
         if ln.trim().is_empty() {
           continue;
         }
@@ -122,9 +154,9 @@ impl Worker {
         if ln == format!("{}\n", wait) {
           print_debug!(self.debug, "[worker {}] {} received", self.id, wait);
           return if payload_str.is_empty() {
-            None
+            Ok(None)
           } else {
-            Some(payload_str)
+            Ok(Some(payload_str))
           };
         } else if ln.starts_with("RESULT_CHUNK:") {
           print_debug!(self.debug, "[worker {}] received result chunk", self.id);
@@ -132,6 +164,6 @@ impl Worker {
         }
       }
     }
-    None
+    Ok(None)
   }
 }

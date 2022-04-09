@@ -25,5 +25,8 @@ bridge({
       age: 50,
       phones: ['a', 'b']
     };
+  },
+  error: () => {
+    throw new Error('task failed');
   }
 });

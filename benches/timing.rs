@@ -23,7 +23,7 @@ fn main() {
         &format!("benches/workers/{}", worker_name),
         "fib",
         vec![30u32],
-      );
+      ).unwrap();
     };
 
     {
