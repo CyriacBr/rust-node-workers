@@ -30,21 +30,6 @@ impl WorkerPool {
     self.debug = debug;
   }
 
-  // fn watch_for_error(&self) {
-  //   let workers = self.workers.clone();
-  //   std::thread::spawn(|| {
-  //     loop {
-  //       let workers = workers.lock().unwrap();
-  //       for w in workers.iter() {
-  //         let child = w.lock().unwrap().child;
-  //         if let Some(child) = child {
-
-  //         }
-  //       }
-  //     }
-  //   });
-  // }
-
   pub fn run_worker<P: AsPayload>(
     &mut self,
     file_path: &str,
