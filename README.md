@@ -56,4 +56,3 @@ Checkout the [documentation](https://docs.rs/node_workers) as well as the [examp
 - Adjust package.json version
 - `git commit -m "chore: release" && git tag vx.y.z && git push --follow-tags`
 - `npm publish --access=public`
-- Run Publish action
