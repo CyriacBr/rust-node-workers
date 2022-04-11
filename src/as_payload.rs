@@ -1,4 +1,4 @@
-use std::path::{PathBuf};
+use std::path::PathBuf;
 
 use serde_json::{json, Value};
 
@@ -61,7 +61,6 @@ impl<T: AsPayload> AsPayload for Option<T> {
     }
   }
 }
-
 
 impl AsPayload for PathBuf {
   fn to_payload(self) -> Value {

@@ -1,6 +1,6 @@
-use std::path::Path;
 use node_workers::WorkerPool;
 use serde::Deserialize;
+use std::path::Path;
 
 #[derive(Deserialize, Debug)]
 struct Property {
@@ -28,7 +28,7 @@ fn main() {
       .canonicalize()
       .unwrap(),
   ];
-  
+
   // execute the command "getInterfaces" on every file
   // each executed worker will return an array of interfaces (Vec<Interface>)
   let interfaces = pool

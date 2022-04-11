@@ -20,8 +20,8 @@ impl WorkerThread {
       std::thread::Result::Ok(join) => {
         let result = join.map(|x| serde_json::from_str::<R>(x.as_str()).unwrap());
         Ok(result)
-      },
-      std::thread::Result::Err(_) => bail!("thread panicked")
+      }
+      std::thread::Result::Err(_) => bail!("thread panicked"),
     }
   }
 }
