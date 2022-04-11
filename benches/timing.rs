@@ -19,11 +19,13 @@ fn main() {
 
     let mut pool = WorkerPool::setup(1);
     let mut worker_pool = |worker_name: &str| {
-      pool.run_task::<(), _>(
-        &format!("benches/workers/{}", worker_name),
-        "fib",
-        vec![30u32],
-      ).unwrap();
+      pool
+        .run_task::<(), _>(
+          &format!("benches/workers/{}", worker_name),
+          "fib",
+          vec![30u32],
+        )
+        .unwrap();
     };
 
     {

@@ -1,4 +1,4 @@
-use rust_node_workers::{WorkerPool, EmptyPayload};
+use rust_node_workers::{EmptyPayload, WorkerPool};
 
 fn main() {
   {
@@ -7,7 +7,9 @@ fn main() {
     pool.with_debug(true);
     // Create 4 payloads
     let payloads = vec![10, 20, 30, 40];
-    let result = pool.run_task::<u64, _>("examples/worker", "fib2", payloads).unwrap();
+    let result = pool
+      .run_task::<u64, _>("examples/worker", "fib2", payloads)
+      .unwrap();
     println!("-----");
     println!("result: {:?}", result);
   }
@@ -23,7 +25,9 @@ fn main() {
     let mut pool = WorkerPool::setup(2);
     // Create 4 payloads
     let payloads = vec![EmptyPayload::new()];
-    let result = pool.run_task::<Person, _>("examples/worker", "getUser", payloads).unwrap();
+    let result = pool
+      .run_task::<Person, _>("examples/worker", "getUser", payloads)
+      .unwrap();
     println!("-----");
     println!("result: {:?}", result);
   }

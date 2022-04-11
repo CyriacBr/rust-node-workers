@@ -1,5 +1,5 @@
 use crate::{as_payload::AsPayload, print_debug, worker::Worker};
-use anyhow::{Result, bail};
+use anyhow::{bail, Result};
 use serde::de::DeserializeOwned;
 use std::{
   sync::{
@@ -21,7 +21,7 @@ impl WorkerPool {
   /// Create a new workers pool with the maximum numbers of workers that can be spawned for the duration of the program
   /// ```
   /// use rust_node_workers::{WorkerPool};
-  /// 
+  ///
   /// let nbr_max_workers = 4;
   /// let mut pool = WorkerPool::setup(nbr_max_workers);
   /// ```
@@ -43,19 +43,19 @@ impl WorkerPool {
   /// Use this if you need more control on the pool.
   /// ```
   /// use rust_node_workers::{WorkerPool};
-  /// 
+  ///
   /// let mut pool = WorkerPool::setup(2);
   /// for n in 1..=4 {
   ///   pool.run_worker("examples/worker", "fib", n * 10);
   /// }
   /// println!("not blocking");
   /// ```
-  /// 
+  ///
   /// The returned thread optionally holds the serialized result from the worker. This can be deserialized using serde_json in order to
   /// get a proper result.
   /// ```
   /// use rust_node_workers::{WorkerPool};
-  /// 
+  ///
   /// let mut pool = WorkerPool::setup(2);
   /// let handle = pool.run_worker("examples/worker", "fib2", 40u32);
   /// let result = handle
@@ -176,8 +176,7 @@ impl WorkerPool {
 
 #[cfg(test)]
 mod tests {
-    use crate::worker_pool::WorkerPool;
-
+  use crate::worker_pool::WorkerPool;
 
   #[test]
   pub fn create_worker_when_needed() {

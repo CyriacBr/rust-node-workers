@@ -1,4 +1,4 @@
-use anyhow::{Context, Ok, Result, bail};
+use anyhow::{bail, Context, Ok, Result};
 use serde_json::Value;
 use std::{
   io::{BufRead, BufReader, Write},
