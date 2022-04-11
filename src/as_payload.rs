@@ -6,7 +6,7 @@ use serde_json::{json, Value};
 ///
 /// let mut pool = WorkerPool::setup(1);
 /// let payloads = vec![EmptyPayload::new(), EmptyPayload::new()];
-/// pool.run_task::<(), _>("examples/worker", "ping", payloads);
+/// pool.perform::<(), _>("examples/worker", "ping", payloads);
 /// ```
 pub struct EmptyPayload {}
 impl EmptyPayload {
@@ -19,7 +19,7 @@ impl EmptyPayload {
   ///
   /// let mut pool = WorkerPool::setup(1);
   /// let payloads = EmptyPayload::bulk(2);
-  /// pool.run_task::<(), _>("examples/worker", "ping", payloads);
+  /// pool.perform::<(), _>("examples/worker", "ping", payloads);
   /// ```
   pub fn bulk(n: u32) -> Vec<EmptyPayload> {
     (0..n).into_iter().map(|_| EmptyPayload::new()).collect()
@@ -78,7 +78,7 @@ macro_rules! impl_all {
 ///
 /// let mut pool = WorkerPool::setup(1);
 /// let payloads = make_payloads!(EmptyPayload::new(), 20, "test");
-/// pool.run_task::<(), _>("examples/worker", "ping", payloads);
+/// pool.perform::<(), _>("examples/worker", "ping", payloads);
 /// ```
 #[macro_export]
 macro_rules! make_payloads {

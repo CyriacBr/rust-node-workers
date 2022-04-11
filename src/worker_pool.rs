@@ -103,18 +103,18 @@ impl WorkerPool {
   }
 
   /// Dispatch a task between available workers with a set of payloads.
-  /// The length of the payloads defines how many workers are mobilised. But this also depends on the maximum number of
-  /// allowed workers. As soon as a worker is free, it'll be assigned right away a new task untill all payloads have been sent.
-  /// Contrarly to `run_worker`, this method is blocking and directly return the result from all workers.
+  /// This mobilize a worker for each payload. As soon as a worker is free, it'll be assigned right away a new task until all payloads have been processed.
+  /// Contrarily to `run_worker`, this method is blocking and directly return the result from all workers.
   /// ```
   /// use node_workers::{WorkerPool};
+  /// 
   /// let mut pool = WorkerPool::setup(2);
   /// pool.with_debug(true);
   /// let payloads = vec![10, 20, 30, 40];
-  /// let result = pool.run_task::<u64, _>("examples/worker", "fib2", payloads).unwrap();
+  /// let result = pool.perform::<u64, _>("examples/worker", "fib2", payloads).unwrap();
   /// println!("result: {:?}", result);
   /// ```
-  pub fn run_task<T: DeserializeOwned, P: AsPayload>(
+  pub fn perform<T: DeserializeOwned, P: AsPayload>(
     &mut self,
     file_path: &str,
     cmd: &str,
@@ -225,7 +225,7 @@ mod tests {
 
     {
       let mut pool = WorkerPool::setup(1);
-      let res = pool.run_task::<(), _>("foo", "fib2", vec![40]);
+      let res = pool.perform::<(), _>("foo", "fib2", vec![40]);
       assert_eq!(true, matches!(res, Err(_)));
     }
   }
@@ -240,7 +240,7 @@ mod tests {
 
     {
       let mut pool = WorkerPool::setup(1);
-      let res = pool.run_task::<(), _>("examples/worker", "error", vec![40]);
+      let res = pool.perform::<(), _>("examples/worker", "error", vec![40]);
       assert_eq!(true, matches!(res, Err(_)));
     }
   }
@@ -255,7 +255,7 @@ mod tests {
 
     {
       let mut pool = WorkerPool::setup(1);
-      let res = pool.run_task::<(), _>("examples/worker", "no", vec![40]);
+      let res = pool.perform::<(), _>("examples/worker", "no", vec![40]);
       assert_eq!(true, matches!(res, Err(_)));
     }
   }

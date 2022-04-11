@@ -20,7 +20,7 @@ fn main() {
     let mut pool = WorkerPool::setup(1);
     let mut worker_pool = |worker_name: &str| {
       pool
-        .run_task::<(), _>(
+        .perform::<(), _>(
           &format!("benches/workers/{}", worker_name),
           "fib",
           vec![30u32],

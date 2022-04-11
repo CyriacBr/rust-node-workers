@@ -29,7 +29,7 @@ Then this worker can be tasked from your Rust code:
 use node_workers::{WorkerPool};
 
 let mut pool = WorkerPool::setup(4); // 4 max workers
-let result = pool.run_task::<u32, _>("worker", "ping", vec![100]).unwrap();
+let result = pool.perform::<u32, _>("worker", "ping", vec![100]).unwrap();
 println!("result: {:?}", result);
 ```
 

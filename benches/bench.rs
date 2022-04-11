@@ -24,7 +24,7 @@ fn bench_fast_binary(c: &mut Criterion) {
   group.bench_function("worker pool", |b| {
     b.iter(|| {
       pool
-        .run_task::<(), _>("benches/workers/fast", "fib", black_box(vec![30]))
+        .perform::<(), _>("benches/workers/fast", "fib", black_box(vec![30]))
         .unwrap();
     })
   });
@@ -53,7 +53,7 @@ fn bench_slow_binary(c: &mut Criterion) {
   group.bench_function("worker pool", |b| {
     b.iter(|| {
       pool
-        .run_task::<(), _>("benches/workers/slow", "fib", black_box(vec![30]))
+        .perform::<(), _>("benches/workers/slow", "fib", black_box(vec![30]))
         .unwrap();
     })
   });

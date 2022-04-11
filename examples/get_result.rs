@@ -8,7 +8,7 @@ fn main() {
     // Create 4 payloads
     let payloads = vec![10, 20, 30, 40];
     let result = pool
-      .run_task::<u64, _>("examples/worker", "fib2", payloads)
+      .perform::<u64, _>("examples/worker", "fib2", payloads)
       .unwrap();
     println!("-----");
     println!("result: {:?}", result);
@@ -26,7 +26,7 @@ fn main() {
     // Create 4 payloads
     let payloads = vec![EmptyPayload::new()];
     let result = pool
-      .run_task::<Person, _>("examples/worker", "getUser", payloads)
+      .perform::<Person, _>("examples/worker", "getUser", payloads)
       .unwrap();
     println!("-----");
     println!("result: {:?}", result);
