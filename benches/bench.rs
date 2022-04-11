@@ -1,7 +1,7 @@
 use std::process::Command;
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion, SamplingMode, Throughput};
-use rust_node_workers::worker_pool::WorkerPool;
+use rust_node_workers::WorkerPool;
 
 fn bench_fast_binary(c: &mut Criterion) {
   let mut group = c.benchmark_group("fast node binary");

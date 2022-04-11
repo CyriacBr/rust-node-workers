@@ -9,14 +9,22 @@ use std::{
   thread::JoinHandle,
 };
 
+/// A pool of nodejs workers
 pub struct WorkerPool {
-  pub workers: Vec<Arc<Mutex<Worker>>>,
-  pub max_workers: usize,
-  pub busy_counter: Arc<AtomicUsize>,
-  pub debug: bool,
+  workers: Vec<Arc<Mutex<Worker>>>,
+  max_workers: usize,
+  busy_counter: Arc<AtomicUsize>,
+  debug: bool,
 }
 
 impl WorkerPool {
+  /// Create a new workers pool with the maximum numbers of workers that can be spawned for the duration of the program
+  /// ```
+  /// use rust_node_workers::{WorkerPool};
+  /// 
+  /// let nbr_max_workers = 4;
+  /// let mut pool = WorkerPool::setup(nbr_max_workers);
+  /// ```
   pub fn setup(max_workers: usize) -> Self {
     WorkerPool {
       workers: Vec::new(),
@@ -26,10 +34,37 @@ impl WorkerPool {
     }
   }
 
+  /// Enable or disable logging
   pub fn with_debug(&mut self, debug: bool) {
     self.debug = debug;
   }
 
+  /// Run a single worker in a thread. This method returns the created thread, not the result of the worker.
+  /// Use this if you need more control on the pool.
+  /// ```
+  /// use rust_node_workers::{WorkerPool};
+  /// 
+  /// let mut pool = WorkerPool::setup(2);
+  /// for n in 1..=4 {
+  ///   pool.run_worker("examples/worker", "fib", n * 10);
+  /// }
+  /// println!("not blocking");
+  /// ```
+  /// 
+  /// The returned thread optionally holds the serialized result from the worker. This can be deserialized using serde_json in order to
+  /// get a proper result.
+  /// ```
+  /// use rust_node_workers::{WorkerPool};
+  /// 
+  /// let mut pool = WorkerPool::setup(2);
+  /// let handle = pool.run_worker("examples/worker", "fib2", 40u32);
+  /// let result = handle
+  ///   .join()
+  ///   .unwrap()
+  ///   .map(|x| serde_json::from_str::<u32>(x.as_str()).unwrap())
+  ///   .unwrap();
+  /// println!("run_worker result: {}", result);
+  /// ```
   pub fn run_worker<P: AsPayload>(
     &mut self,
     file_path: &str,
@@ -67,6 +102,18 @@ impl WorkerPool {
     })
   }
 
+  /// Dispatch a task between available workers with a set of payloads.
+  /// The length of the payloads defines how many workers are mobilised. But this also depends on the maximum number of
+  /// allowed workers. As soon as a worker is free, it'll be assigned right away a new task untill all payloads have been sent.
+  /// Contrarly to `run_worker`, this method is blocking and directly return the result from all workers.
+  /// ```
+  /// use rust_node_workers::{WorkerPool};
+  /// let mut pool = WorkerPool::setup(2);
+  /// pool.with_debug(true);
+  /// let payloads = vec![10, 20, 30, 40];
+  /// let result = pool.run_task::<u64, _>("examples/worker", "fib2", payloads).unwrap();
+  /// println!("result: {:?}", result);
+  /// ```
   pub fn run_task<T: DeserializeOwned, P: AsPayload>(
     &mut self,
     file_path: &str,

@@ -1,10 +1,26 @@
 use serde_json::{json, Value};
 
+/// Represents an empty payload that can be sent to a node worker
+/// ```
+/// use rust_node_workers::{EmptyPayload, WorkerPool};
+/// 
+/// let mut pool = WorkerPool::setup(1);
+/// let payloads = vec![EmptyPayload::new(), EmptyPayload::new()];
+/// pool.run_task::<(), _>("examples/worker", "ping", payloads);
+/// ```
 pub struct EmptyPayload {}
 impl EmptyPayload {
   pub fn new() -> EmptyPayload {
     EmptyPayload {}
   }
+  /// Convenient method to create an array of empty payload
+  /// ```
+  /// use rust_node_workers::{EmptyPayload, WorkerPool};
+  /// 
+  /// let mut pool = WorkerPool::setup(1);
+  /// let payloads = EmptyPayload::bulk(2);
+  /// pool.run_task::<(), _>("examples/worker", "ping", payloads);
+  /// ```
   pub fn bulk(n: u32) -> Vec<EmptyPayload> {
     (0..n).into_iter().map(|_| EmptyPayload::new()).collect()
   }
@@ -20,6 +36,10 @@ impl AsPayload for EmptyPayload {
   }
 }
 
+/// Represent a data that can be sent to a node worker.
+/// Under the hood, node worker can only receive and transfer back serde_json::Value.
+/// This trait is mainly for convenience as it is already implemented for all primitive types, and lets you
+/// send all kinds of data to a node worker without boilerplate.
 pub trait AsPayload {
   fn to_payload(self) -> Value;
 }
@@ -52,6 +72,14 @@ macro_rules! impl_all {
     }
 }
 
+/// A macro to quickly create an array of payload. This is usefull for running a task with payloads of different types.
+/// ```
+/// use rust_node_workers::{EmptyPayload, WorkerPool, AsPayload, make_payloads};
+/// 
+/// let mut pool = WorkerPool::setup(1);
+/// let payloads = make_payloads!(EmptyPayload::new(), 20, "test");
+/// pool.run_task::<(), _>("examples/worker", "ping", payloads);
+/// ```
 #[macro_export]
 macro_rules! make_payloads {
     ( $( $a:expr ),* ) => {

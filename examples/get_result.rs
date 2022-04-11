@@ -1,4 +1,4 @@
-use rust_node_workers::{worker_pool::WorkerPool, as_payload::EmptyPayload};
+use rust_node_workers::{WorkerPool, EmptyPayload};
 
 fn main() {
   {

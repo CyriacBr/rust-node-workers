@@ -17,7 +17,6 @@ pub struct Worker {
   pub debug: bool,
 }
 
-// TODO: handle cmd error
 impl Worker {
   pub fn new(id: usize, debug: bool) -> Worker {
     Worker {

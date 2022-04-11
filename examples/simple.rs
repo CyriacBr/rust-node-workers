@@ -1,8 +1,4 @@
-use rust_node_workers::{
-  as_payload::{AsPayload, EmptyPayload},
-  make_payloads,
-  worker_pool::WorkerPool,
-};
+use rust_node_workers::{make_payloads, AsPayload, EmptyPayload, WorkerPool};
 use serde_json::json;
 
 fn main() {
@@ -15,6 +11,16 @@ fn main() {
     pool
       .run_task::<(), _>("examples/worker", "fib", payloads)
       .unwrap();
+  }
+  {
+    let mut pool = WorkerPool::setup(2);
+    let handle = pool.run_worker("examples/worker", "fib2", 40u32);
+    let result = handle
+      .join()
+      .unwrap()
+      .map(|x| serde_json::from_str::<u32>(x.as_str()).unwrap())
+      .unwrap();
+    println!("run_worker result: {}", result);
   }
 
   {
