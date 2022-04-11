@@ -2,7 +2,7 @@ use serde_json::{json, Value};
 
 /// Represents an empty payload that can be sent to a node worker
 /// ```
-/// use rust_node_workers::{EmptyPayload, WorkerPool};
+/// use node_workers::{EmptyPayload, WorkerPool};
 ///
 /// let mut pool = WorkerPool::setup(1);
 /// let payloads = vec![EmptyPayload::new(), EmptyPayload::new()];
@@ -15,7 +15,7 @@ impl EmptyPayload {
   }
   /// Convenient method to create an array of empty payload
   /// ```
-  /// use rust_node_workers::{EmptyPayload, WorkerPool};
+  /// use node_workers::{EmptyPayload, WorkerPool};
   ///
   /// let mut pool = WorkerPool::setup(1);
   /// let payloads = EmptyPayload::bulk(2);
@@ -74,7 +74,7 @@ macro_rules! impl_all {
 
 /// A macro to quickly create an array of payload. This is usefull for running a task with payloads of different types.
 /// ```
-/// use rust_node_workers::{EmptyPayload, WorkerPool, AsPayload, make_payloads};
+/// use node_workers::{EmptyPayload, WorkerPool, AsPayload, make_payloads};
 ///
 /// let mut pool = WorkerPool::setup(1);
 /// let payloads = make_payloads!(EmptyPayload::new(), 20, "test");

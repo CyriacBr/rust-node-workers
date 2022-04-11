@@ -1,7 +1,14 @@
 [package]
 edition = "2021"
-name = "rust-node-workers"
-version = "0.0.0"
+name = "node-workers"
+version = "0.5.0"
+authors = ["Cyriac <cyriacbr@gmail.com>"]
+description = "A pool of long-lived nodejs workers"
+documentation = "https://docs.rs/node_workers"
+repository = "https://github.com/CyriacBr/node-workers"
+license = "MIT"
+keywords = ["nodejs", "js", "worker", "pool", "process"]
+categories = ["concurrency"]
 
 [lib]
 crate-type = ["lib"]

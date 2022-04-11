@@ -20,7 +20,7 @@ pub struct WorkerPool {
 impl WorkerPool {
   /// Create a new workers pool with the maximum numbers of workers that can be spawned for the duration of the program
   /// ```
-  /// use rust_node_workers::{WorkerPool};
+  /// use node_workers::{WorkerPool};
   ///
   /// let nbr_max_workers = 4;
   /// let mut pool = WorkerPool::setup(nbr_max_workers);
@@ -42,7 +42,7 @@ impl WorkerPool {
   /// Run a single worker in a thread. This method returns the created thread, not the result of the worker.
   /// Use this if you need more control on the pool.
   /// ```
-  /// use rust_node_workers::{WorkerPool};
+  /// use node_workers::{WorkerPool};
   ///
   /// let mut pool = WorkerPool::setup(2);
   /// for n in 1..=4 {
@@ -54,7 +54,7 @@ impl WorkerPool {
   /// The returned thread optionally holds the serialized result from the worker. This can be deserialized using serde_json in order to
   /// get a proper result.
   /// ```
-  /// use rust_node_workers::{WorkerPool};
+  /// use node_workers::{WorkerPool};
   ///
   /// let mut pool = WorkerPool::setup(2);
   /// let handle = pool.run_worker("examples/worker", "fib2", 40u32);
@@ -107,7 +107,7 @@ impl WorkerPool {
   /// allowed workers. As soon as a worker is free, it'll be assigned right away a new task untill all payloads have been sent.
   /// Contrarly to `run_worker`, this method is blocking and directly return the result from all workers.
   /// ```
-  /// use rust_node_workers::{WorkerPool};
+  /// use node_workers::{WorkerPool};
   /// let mut pool = WorkerPool::setup(2);
   /// pool.with_debug(true);
   /// let payloads = vec![10, 20, 30, 40];

@@ -1,5 +1,5 @@
 use benchman::*;
-use rust_node_workers::WorkerPool;
+use node_workers::WorkerPool;
 use std::process::Command;
 
 fn main() {

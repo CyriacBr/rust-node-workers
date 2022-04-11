@@ -1,15 +1,20 @@
 {
   "name": "rust-node-workers",
-  "version": "0.0.0",
+  "version": "0.5.0",
   "main": "dist/bridge.js",
   "types": "dist/bridge.d.ts",
   "license": "MIT",
+  "files": [
+    "dist"
+  ],
   "devDependencies": {
     "@types/node": "^17.0.23",
     "ts-lib": "^0.0.5",
     "typescript": "^4.6.3"
   },
   "scripts": {
-    "build": "cargo build --release && tsc"
+    "build": "cargo build --release && tsc",
+    "test": "cargo test",
+    "release": "yarn test && yarn build && release-plz update"
   }
 }

@@ -1,4 +1,4 @@
-use rust_node_workers::{make_payloads, AsPayload, EmptyPayload, WorkerPool};
+use node_workers::{make_payloads, AsPayload, EmptyPayload, WorkerPool};
 use serde_json::json;
 
 fn main() {
