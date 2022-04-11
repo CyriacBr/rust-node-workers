@@ -7,6 +7,28 @@ function fib(n) {
   return fib(n - 1) + fib(n - 2);
 }
 
+const { Project } = require('ts-morph');
+function getInterfaces(filePath) {
+  const project = new Project();
+  const source = project.addSourceFileAtPath(filePath);
+  const interfaces = source.getInterfaces();
+  const results = [];
+  for (const interface of interfaces) {
+    const members = interface.getMembers();
+    const props = [];
+    for (const member of members) {
+      const key = member.compilerNode.name.text;
+      const type = member.compilerNode.type?.getText();
+      props.push({ key, type });
+    }
+    results.push({
+      name: interface.getName(),
+      props,
+    });
+  }
+  return results;
+}
+
 bridge({
   fib: (payload) => {
     console.log(`fib ${payload} task start`);
@@ -28,5 +50,7 @@ bridge({
   },
   error: () => {
     throw new Error('task failed');
-  }
+  },
+  getInterfaces
 });
+
