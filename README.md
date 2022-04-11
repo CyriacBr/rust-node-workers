@@ -14,7 +14,7 @@ To communicate with it, `node-workers` provides a bridge that needs to be used w
 
 ```ts
 // worker.js
-const { bridge } = require('node-workers');
+const { bridge } = require('rust-node-workers');
 
 bridge({
   ping: (payload) => {
@@ -36,7 +36,7 @@ println!("result: {:?}", result);
 ## Installation
 The npm package need to be installed to setup the bridge:
 ```sh
-yarn add node-workers
+yarn add rust-node-workers
 ```
 In your rust project:
 ```yml
