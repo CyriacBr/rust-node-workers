@@ -1,12 +1,9 @@
-use crate::{as_payload::AsPayload, print_debug, worker::Worker};
+use crate::{as_payload::AsPayload, print_debug, worker::Worker, worker_thread::WorkerThread};
 use anyhow::{bail, Result};
 use serde::de::DeserializeOwned;
-use std::{
-  sync::{
-    atomic::{AtomicUsize, Ordering},
-    Arc, Mutex,
-  },
-  thread::JoinHandle,
+use std::sync::{
+  atomic::{AtomicUsize, Ordering},
+  Arc, Mutex,
 };
 
 /// A pool of nodejs workers
@@ -70,7 +67,7 @@ impl WorkerPool {
     file_path: &str,
     cmd: &str,
     payload: P,
-  ) -> JoinHandle<Option<String>> {
+  ) -> WorkerThread {
     let worker = self.get_available_worker();
     self.busy_counter.fetch_add(1, Ordering::SeqCst);
     print_debug!(
@@ -84,7 +81,7 @@ impl WorkerPool {
     let debug = self.debug;
     let payload = payload.to_payload();
 
-    std::thread::spawn(move || {
+    let handle = std::thread::spawn(move || {
       let worker = worker.clone();
       worker.lock().unwrap().init(file_path.as_str()).unwrap();
       let res = worker
@@ -99,7 +96,8 @@ impl WorkerPool {
       );
       waiting.fetch_sub(1, Ordering::SeqCst);
       res
-    })
+    });
+    WorkerThread::from_handle(handle)
   }
 
   /// Dispatch a task between available workers with a set of payloads.
@@ -107,7 +105,7 @@ impl WorkerPool {
   /// Contrarily to `run_worker`, this method is blocking and directly return the result from all workers.
   /// ```
   /// use node_workers::{WorkerPool};
-  /// 
+  ///
   /// let mut pool = WorkerPool::setup(2);
   /// pool.with_debug(true);
   /// let payloads = vec![10, 20, 30, 40];
@@ -133,10 +131,10 @@ impl WorkerPool {
       .into_iter()
       .enumerate()
       .map(|(n, x)| {
-        let str = x.join();
-        if let Ok(str) = str {
-          print_debug!(self.debug, "[pool] (thread {}) result: {:?}", n, str);
-          Ok(str.map(|x| serde_json::from_str(&x).unwrap()))
+        print_debug!(self.debug, "[pool] (thread {}) joined", n);
+        let res = x.get_result::<T>();
+        if let Ok(res) = res {
+          Ok(res)
         } else {
           bail!("failed to join thread")
         }
