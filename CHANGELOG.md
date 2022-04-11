@@ -6,6 +6,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.2] - 2022-04-11
+
+### Added
+- directly expose APIs and setup rustdoc
+- handle child errors
+- add debug option
+- add examples
+- simplifies API with AsPayload
+- support returning result from worker
+- add bridge
+- support sending payloads
+
+### Fixed
+- properly wait for idle worker
+
+### Other
+- fix npm package name
+- correct typos
+- fix incorrect workflow
+- release 0.5.1
+- improve docs
+- fix CI
+- fix CI
+- fix CI
+- prepare for release
+- format code
+- remove unecessary code
+- fix clippy errors
+- add tests
+- improve timing benchmark
+- add benchmark
+- fix clippy errors
+- remove napi-rs
+- setup project with initial impl
+
 ## [0.5.1] - 2022-04-11
 
 ### Added
