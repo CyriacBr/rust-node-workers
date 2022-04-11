@@ -1,3 +1,5 @@
+use std::path::{PathBuf};
+
 use serde_json::{json, Value};
 
 /// Represents an empty payload that can be sent to a node worker
@@ -57,6 +59,13 @@ impl<T: AsPayload> AsPayload for Option<T> {
     } else {
       Value::Null
     }
+  }
+}
+
+
+impl AsPayload for PathBuf {
+  fn to_payload(self) -> Value {
+    self.to_str().unwrap().to_payload()
   }
 }
 
