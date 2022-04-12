@@ -8,6 +8,7 @@ use std::sync::{
 
 /// A pool of nodejs workers
 pub struct WorkerPool {
+  binary_args: Vec<String>,
   workers: Vec<Arc<Mutex<Worker>>>,
   max_workers: usize,
   busy_counter: Arc<AtomicUsize>,
@@ -24,11 +25,27 @@ impl WorkerPool {
   /// ```
   pub fn setup(max_workers: usize) -> Self {
     WorkerPool {
+      binary_args: vec!["node".into()],
       workers: Vec::new(),
       max_workers,
       busy_counter: Arc::new(AtomicUsize::new(0)),
       debug: false,
     }
+  }
+
+  /// Configure the binary that's used to run JS workers
+  /// This can be usefull configure node or to run JS via another runtime
+  /// ```rust
+  /// use node_workers::{EmptyPayload, WorkerPool};
+  ///
+  /// let mut pool = WorkerPool::setup(4);
+  /// pool.set_binary("node -r esbuild-register");
+  /// pool
+  ///   .perform::<(), _>("examples/worker.ts", "ping", EmptyPayload::bulk(1))
+  ///   .unwrap();
+  /// ```
+  pub fn set_binary(&mut self, binary: &str) {
+    self.binary_args = shell_words::split(binary).expect("couldn't parse binary");
   }
 
   /// Enable or disable logging
@@ -79,11 +96,16 @@ impl WorkerPool {
     let waiting = self.busy_counter.clone();
     let cmd = cmd.to_string();
     let debug = self.debug;
+    let binary_args = self.binary_args.clone();
     let payload = payload.to_payload();
 
     let handle = std::thread::spawn(move || {
       let worker = worker.clone();
-      worker.lock().unwrap().init(file_path.as_str()).unwrap();
+      worker
+        .lock()
+        .unwrap()
+        .init(binary_args, file_path.as_str())
+        .unwrap();
       let res = worker
         .lock()
         .unwrap()

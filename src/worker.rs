@@ -30,12 +30,15 @@ impl Worker {
     }
   }
 
-  pub fn init(&mut self, file_path: &str) -> Result<()> {
+  pub fn init(&mut self, binary_args: Vec<String>, file_path: &str) -> Result<()> {
     if self.child.is_some() {
       return Ok(());
     }
-    let mut child = Command::new("node")
-      .arg(file_path)
+    let bin = &binary_args[0];
+    let mut args = binary_args[1..].to_vec();
+    args.push(file_path.to_string());
+    let mut child = Command::new(bin)
+      .args(args)
       .stdin(Stdio::piped())
       .stdout(Stdio::piped())
       .spawn()
