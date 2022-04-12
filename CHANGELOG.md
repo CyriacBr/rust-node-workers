@@ -6,6 +6,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2022-04-12
+
+### Added
+- *(WorkerPool)* add set_binary option
+- *(WorkerPool)* simplify run_worker API
+- directly expose APIs and setup rustdoc
+- handle child errors
+- add debug option
+- add examples
+- simplifies API with AsPayload
+- support returning result from worker
+- add bridge
+- support sending payloads
+
+### Fixed
+- properly wait for idle worker
+
+### Other
+- format code
+- improve documentation
+- improve examples
+- improve examples
+- *(WorkerPool)* [**breaking**] rename run_task to perform
+- improve github action workflows
+- fix npm package version
+- release 0.6.0
+- fix npm package name
+- correct typos
+- fix incorrect workflow
+- release 0.5.1
+- improve docs
+- fix CI
+- fix CI
+- fix CI
+- prepare for release
+- format code
+- remove unecessary code
+- fix clippy errors
+- add tests
+- improve timing benchmark
+- add benchmark
+- fix clippy errors
+- remove napi-rs
+- setup project with initial impl
+
 ## [0.5.2] - 2022-04-11
 
 ### Added
