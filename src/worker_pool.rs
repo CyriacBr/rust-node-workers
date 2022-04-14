@@ -1,18 +1,16 @@
-use crate::{as_payload::AsPayload, print_debug, worker::Worker, worker_thread::WorkerThread};
+use crate::{
+  as_payload::AsPayload, print_debug, worker_pool_inner::WorkerPoolInner,
+  worker_thread::WorkerThread,
+};
 use anyhow::{bail, Result};
 use serde::de::DeserializeOwned;
-use std::sync::{
-  atomic::{AtomicUsize, Ordering},
-  Arc, Mutex,
-};
+use std::sync::{Arc, Mutex};
 
-/// A pool of nodejs workers
+/// A pool of nodejs workers.
+/// Wraps a inner struct inside `Arc<Mutex<T>>` to be able to invoke it's method within a spawned thread.
+/// This is important so that indefinitely blocking methods such as `get_available_workers` can be offloaded.
 pub struct WorkerPool {
-  binary_args: Vec<String>,
-  workers: Vec<Arc<Mutex<Worker>>>,
-  max_workers: usize,
-  busy_counter: Arc<AtomicUsize>,
-  debug: bool,
+  inner: Arc<Mutex<WorkerPoolInner>>,
 }
 
 impl WorkerPool {
@@ -25,11 +23,7 @@ impl WorkerPool {
   /// ```
   pub fn setup(max_workers: usize) -> Self {
     WorkerPool {
-      binary_args: vec!["node".into()],
-      workers: Vec::new(),
-      max_workers,
-      busy_counter: Arc::new(AtomicUsize::new(0)),
-      debug: false,
+      inner: Arc::new(Mutex::new(WorkerPoolInner::setup(max_workers))),
     }
   }
 
@@ -45,12 +39,12 @@ impl WorkerPool {
   ///   .unwrap();
   /// ```
   pub fn set_binary(&mut self, binary: &str) {
-    self.binary_args = shell_words::split(binary).expect("couldn't parse binary");
+    self.inner.lock().unwrap().set_binary(binary);
   }
 
   /// Enable or disable logging
   pub fn with_debug(&mut self, debug: bool) {
-    self.debug = debug;
+    self.inner.lock().unwrap().with_debug(debug);
   }
 
   /// Run a single worker in a thread. This method returns the created thread, not the result of the worker.
@@ -85,39 +79,18 @@ impl WorkerPool {
     cmd: &str,
     payload: P,
   ) -> WorkerThread {
-    let worker = self.get_available_worker();
-    self.busy_counter.fetch_add(1, Ordering::SeqCst);
-    print_debug!(
-      self.debug,
-      "[pool] got worker {}",
-      worker.lock().unwrap().id
-    );
-    let file_path = String::from(file_path);
-    let waiting = self.busy_counter.clone();
-    let cmd = cmd.to_string();
-    let debug = self.debug;
-    let binary_args = self.binary_args.clone();
     let payload = payload.to_payload();
+    let file_path = file_path.to_string();
+    let cmd = cmd.to_string();
+    let inner = self.inner.clone();
 
+    // spawn a thread so that inner.get_available_worker() doesn't block
     let handle = std::thread::spawn(move || {
-      let worker = worker.clone();
-      worker
-        .lock()
-        .unwrap()
-        .init(binary_args, file_path.as_str())
-        .unwrap();
-      let res = worker
-        .lock()
-        .unwrap()
-        .perform_task(cmd, payload)
-        .expect("perform task");
-      print_debug!(
-        debug,
-        "[pool] performed task on worker {}",
-        worker.lock().unwrap().id
-      );
-      waiting.fetch_sub(1, Ordering::SeqCst);
-      res
+      let inner = inner.clone();
+      let mut pool = inner.lock().unwrap();
+      let res = pool.run_worker(&file_path, &cmd, payload);
+      drop(pool);
+      res.join().unwrap()
     });
     WorkerThread::from_handle(handle)
   }
@@ -140,20 +113,25 @@ impl WorkerPool {
     cmd: &str,
     payloads: Vec<P>,
   ) -> Result<Vec<Option<T>>> {
-    print_debug!(self.debug, "[pool] running tasks");
+    let debug = self.inner.lock().unwrap().debug;
+    print_debug!(debug, "[pool] running tasks");
     let mut handles = Vec::new();
     for (n, payload) in payloads.into_iter().map(|x| x.to_payload()).enumerate() {
-      print_debug!(self.debug, "[pool] (task {}) start of iteration", n);
-      let handle = self.run_worker(file_path, cmd, payload);
+      print_debug!(debug, "[pool] (task {}) start of iteration", n);
+      let handle = self
+        .inner
+        .lock()
+        .unwrap()
+        .run_worker(file_path, cmd, payload);
       handles.push(handle);
-      print_debug!(self.debug, "[pool] (task {}) end of iteration", n);
+      print_debug!(debug, "[pool] (task {}) end of iteration", n);
     }
 
     handles
       .into_iter()
       .enumerate()
       .map(|(n, x)| {
-        print_debug!(self.debug, "[pool] (thread {}) joined", n);
+        print_debug!(debug, "[pool] (thread {}) joined", n);
         let res = x.get_result::<T>();
         if let Ok(res) = res {
           Ok(res)
@@ -163,35 +141,6 @@ impl WorkerPool {
       })
       .collect::<Result<Vec<_>, _>>()
   }
-
-  fn get_available_worker(&mut self) -> Arc<Mutex<Worker>> {
-    let idle_worker = self.workers.iter().find(|w| {
-      if let Ok(w) = w.try_lock() {
-        return w.idle;
-      }
-      false
-    });
-    if let Some(idle_worker) = idle_worker {
-      idle_worker.lock().unwrap().idle = false;
-      print_debug!(self.debug, "[pool] found idle worker");
-      return idle_worker.clone();
-    }
-    if self.workers.len() < self.max_workers {
-      let mut worker = Worker::new(self.workers.len() + 1, self.debug);
-      worker.idle = false;
-      self.workers.push(Arc::new(Mutex::new(worker)));
-      print_debug!(self.debug, "[pool] created new worker");
-      return self.workers.last().unwrap().clone();
-    }
-    print_debug!(self.debug, "[pool] waiting for worker to be free");
-    loop {
-      if self.busy_counter.load(Ordering::SeqCst) == 0 {
-        print_debug!(self.debug, "[pool] pool is free");
-        break;
-      }
-    }
-    self.get_available_worker()
-  }
 }
 
 #[cfg(test)]
@@ -200,38 +149,60 @@ mod tests {
 
   #[test]
   pub fn create_worker_when_needed() {
-    let mut pool = WorkerPool::setup(1);
-    assert_eq!(pool.workers.len(), 0);
+    let pool = WorkerPool::setup(1);
+    assert_eq!(pool.inner.lock().unwrap().workers.len(), 0);
 
-    pool.get_available_worker();
-    assert_eq!(pool.workers.len(), 1);
+    pool.inner.lock().unwrap().get_available_worker();
+    assert_eq!(pool.inner.lock().unwrap().workers.len(), 1);
   }
 
   #[test]
   pub fn same_idle_worker() {
-    let mut pool = WorkerPool::setup(1);
-    let worker = pool.get_available_worker();
+    let pool = WorkerPool::setup(1);
+    let worker = pool.inner.lock().unwrap().get_available_worker();
     worker.lock().unwrap().idle = true;
     let worker_id = worker.lock().unwrap().id;
-    let other_worker_id = pool.get_available_worker().lock().unwrap().id;
+    let other_worker_id = pool
+      .inner
+      .lock()
+      .unwrap()
+      .get_available_worker()
+      .lock()
+      .unwrap()
+      .id;
     assert_eq!(worker_id, other_worker_id);
   }
 
   #[test]
   pub fn create_new_worker_when_busy() {
-    let mut pool = WorkerPool::setup(2);
-    pool.run_worker("examples/worker", "fib2", 40);
+    let pool = WorkerPool::setup(2);
+    pool.inner.lock().unwrap().run_worker("examples/worker", "fib2", 40);
 
-    let worker_id = pool.get_available_worker().lock().unwrap().id;
+    let worker_id = pool
+      .inner
+      .lock()
+      .unwrap()
+      .get_available_worker()
+      .lock()
+      .unwrap()
+      .id;
+    println!("got worker_id");
     assert_eq!(worker_id, 2);
   }
 
   #[test]
   pub fn reuse_worker_when_full() {
-    let mut pool = WorkerPool::setup(1);
-    pool.run_worker("examples/worker", "fib2", 40);
+    let pool = WorkerPool::setup(1);
+    pool.inner.lock().unwrap().run_worker("examples/worker", "fib2", 40);
 
-    let worker_id = pool.get_available_worker().lock().unwrap().id;
+    let worker_id = pool
+      .inner
+      .lock()
+      .unwrap()
+      .get_available_worker()
+      .lock()
+      .unwrap()
+      .id;
     assert_eq!(worker_id, 1);
   }
 
@@ -240,6 +211,7 @@ mod tests {
     {
       let mut pool = WorkerPool::setup(1);
       let res = pool.run_worker("foo", "fib2", 40).join();
+      println!("{:?}", res);
       assert_eq!(true, matches!(res, Err(_)));
     }
 
