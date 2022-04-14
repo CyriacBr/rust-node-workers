@@ -3,6 +3,7 @@ use std::thread::JoinHandle;
 use anyhow::{bail, Ok, Result};
 use serde::de::DeserializeOwned;
 
+#[derive(Debug)]
 pub struct WorkerThread {
   inner: JoinHandle<Option<String>>,
 }
