@@ -34,12 +34,14 @@ impl WorkerPool {
   /// This can be usefull configure node or to run JS via another runtime
   /// ```rust
   /// use node_workers::{EmptyPayload, WorkerPool};
+  /// # use std::error::Error;
   ///
+  /// # fn main() -> Result<(), Box<dyn Error>> {
   /// let mut pool = WorkerPool::setup(4);
   /// pool.set_binary("node -r esbuild-register");
-  /// pool
-  ///   .perform::<(), _>("examples/worker.ts", "ping", EmptyPayload::bulk(1))
-  ///   .unwrap();
+  /// pool.perform::<(), _>("examples/worker.ts", "ping", EmptyPayload::bulk(1))?;
+  /// # Ok(())
+  /// # }
   /// ```
   pub fn set_binary(&mut self, binary: &str) {
     self.inner.lock().unwrap().set_binary(binary);
@@ -63,18 +65,18 @@ impl WorkerPool {
   /// ```
   ///
   /// The returned thread optionally holds the serialized result from the worker. This can be deserialized using serde_json in order to
-  /// get a proper result.
+  /// get a proper result. This is done under the hood for you.
   /// ```
   /// use node_workers::{WorkerPool};
+  /// # use std::error::Error;
   ///
+  /// # fn main() -> Result<(), Box<dyn Error>> {
   /// let mut pool = WorkerPool::setup(2);
-  /// let handle = pool.run_worker("examples/worker", "fib2", 40u32);
-  /// let result = handle
-  ///   .join()
-  ///   .unwrap()
-  ///   .map(|x| serde_json::from_str::<u32>(x.as_str()).unwrap())
-  ///   .unwrap();
-  /// println!("run_worker result: {}", result);
+  /// let thread = pool.run_worker("examples/worker", "fib2", 40u32);
+  /// let result = thread.get_result::<u32>()?;
+  /// println!("run_worker result: {:#?}", result);
+  /// # Ok(())
+  /// # }
   /// ```
   pub fn run_worker<P: AsPayload>(
     &mut self,
@@ -103,13 +105,20 @@ impl WorkerPool {
   /// Contrarily to `run_worker`, this method is blocking and directly return the result from all workers.
   /// ```
   /// use node_workers::{WorkerPool};
+  /// # use std::error::Error;
   ///
+  /// # fn main() -> Result<(), Box<dyn Error>> {
   /// let mut pool = WorkerPool::setup(2);
   /// pool.with_debug(true);
   /// let payloads = vec![10, 20, 30, 40];
   /// let result = pool.perform::<u64, _>("examples/worker", "fib2", payloads).unwrap();
-  /// println!("result: {:?}", result);
+  /// println!("result: {:#?}", result);
+  /// # Ok(())
+  /// # }
   /// ```
+  /// ## Errors
+  /// 
+  /// Each worker is run in a thread, and `perform()` will return an error variant if one of them panick.
   pub fn perform<T: DeserializeOwned, P: AsPayload>(
     &mut self,
     file_path: &str,
