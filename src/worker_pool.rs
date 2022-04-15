@@ -4,7 +4,7 @@ use crate::{
 };
 use anyhow::{bail, Result};
 use serde::de::DeserializeOwned;
-use std::sync::{Arc, Mutex};
+use std::{sync::{Arc, Mutex}, thread::JoinHandle};
 
 /// A pool of nodejs workers.
 /// Wraps a inner struct inside `Arc<Mutex<T>>` to be able to invoke it's method within a spawned thread.
@@ -141,6 +141,26 @@ impl WorkerPool {
       })
       .collect::<Result<Vec<_>, _>>()
   }
+  
+  /// Boot a maximum of *n* workers, making them ready to take on a task right away.
+  /// ```rust
+  /// use node_workers::{WorkerPool};
+  ///
+  /// let mut pool = WorkerPool::setup(2);
+  /// let handle = pool.warmup(2, "examples/worker");
+  ///
+  /// //... some intensive task on the main thread
+  /// 
+  /// handle.join().expect("Couldn't warmup workers");
+  /// //... task workers
+  /// ```
+  pub fn warmup(&self, nbr_workers: usize, file_path: &str) -> JoinHandle<()> {
+    let inner = self.inner.clone();
+    let file_path = file_path.to_string();
+    std::thread::spawn(move || {
+      inner.lock().unwrap().warmup(nbr_workers, &file_path).unwrap()
+    })
+  }
 }
 
 #[cfg(test)]
@@ -207,6 +227,18 @@ mod tests {
   }
 
   #[test]
+  pub fn warmup() {
+    let mut pool = WorkerPool::setup(2);
+    pool.with_debug(true);
+    pool.warmup(2, "examples/worker").join().unwrap();
+    
+    let workers = pool.inner.lock().unwrap().workers.clone();
+    for worker in workers {
+      assert_eq!(worker.lock().unwrap().ready, true);
+    }
+  }
+
+  #[test]
   pub fn error_invalid_command() {
     {
       let mut pool = WorkerPool::setup(1);
@@ -218,6 +250,12 @@ mod tests {
     {
       let mut pool = WorkerPool::setup(1);
       let res = pool.perform::<(), _>("foo", "fib2", vec![40]);
+      assert_eq!(true, matches!(res, Err(_)));
+    }
+
+    {
+      let pool = WorkerPool::setup(1);
+      let res = pool.warmup(1, "foo").join();
       assert_eq!(true, matches!(res, Err(_)));
     }
   }

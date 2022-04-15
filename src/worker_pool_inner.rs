@@ -1,8 +1,10 @@
+use anyhow::{Result, bail};
+
 use crate::{print_debug, worker::Worker, worker_thread::WorkerThread, AsPayload};
-use std::sync::{
+use std::{sync::{
   atomic::{AtomicUsize, Ordering},
   Arc, Mutex,
-};
+}};
 
 /// Struct responsible of the inner working of the pool
 /// Needs to be wrapped in a Arc<Mutex<T>> for manipulations within different threads
@@ -15,7 +17,6 @@ pub struct WorkerPoolInner {
 }
 
 impl WorkerPoolInner {
-
   /// Create a new pool with some parameters
   pub fn setup(max_workers: usize) -> Self {
     WorkerPoolInner {
@@ -104,5 +105,37 @@ impl WorkerPoolInner {
       }
     }
     self.get_available_worker()
+  }
+
+  pub fn warmup(&mut self, nbr_workers: usize, file_path: &str) -> Result<()> {
+    let n = nbr_workers.clamp(0, self.max_workers - self.workers.len());
+    let debug = self.debug;
+    let ln = self.workers.len();
+    let mut handles = Vec::new();
+    for n in 0..n {
+      let id = ln + n + 1;
+      let worker = Worker::new(id, debug);
+      let mutex = Arc::new(Mutex::new(worker));
+      self.workers.push(mutex.clone());
+      print_debug!(debug, "[pool] (warmup) created new worker");
+
+      let binary_args = self.binary_args.clone();
+      let file_path = file_path.to_string();
+      let handle = std::thread::spawn(move || {
+        let worker = mutex.clone();
+        let mut worker = worker.lock().unwrap();
+        worker.init(binary_args, &file_path).unwrap();
+        worker.wait_for_ready().unwrap();
+        print_debug!(debug, "[pool] (warmup) worker {} initialized", id);
+      });
+      handles.push(handle);
+    }
+    for handle in handles {
+      match handle.join() {
+        std::thread::Result::Err(_) => bail!("thread panicked"),
+        _ => {}
+      }
+    }
+    Ok(())
   }
 }
