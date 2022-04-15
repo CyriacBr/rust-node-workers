@@ -91,7 +91,7 @@ impl WorkerPool {
     let handle = std::thread::spawn(move || {
       let inner = inner.clone();
       let mut pool = inner.lock().unwrap();
-      let res = pool.run_worker(&file_path, &cmd, payload);
+      let res = pool.run_worker(file_path, cmd, payload);
       drop(pool);
       res.join().unwrap()
     });
@@ -125,7 +125,7 @@ impl WorkerPool {
         .inner
         .lock()
         .unwrap()
-        .run_worker(file_path, cmd, payload);
+        .run_worker(file_path.to_string(), cmd.to_string(), payload);
       handles.push(handle);
       print_debug!(debug, "[pool] (task {}) end of iteration", n);
     }
@@ -207,7 +207,7 @@ mod tests {
       .inner
       .lock()
       .unwrap()
-      .run_worker("examples/worker", "fib2", 40);
+      .run_worker("examples/worker".into(), "fib2".into(), 40);
 
     let worker_id = pool
       .inner
@@ -228,7 +228,7 @@ mod tests {
       .inner
       .lock()
       .unwrap()
-      .run_worker("examples/worker", "fib2", 40);
+      .run_worker("examples/worker".into(), "fib2".into(), 40);
 
     let worker_id = pool
       .inner

@@ -42,8 +42,8 @@ impl WorkerPoolInner {
   /// and therefor can block if the pool is waiting for an idle worker.
   pub fn run_worker<P: AsPayload>(
     &mut self,
-    file_path: &str,
-    cmd: &str,
+    file_path: String,
+    cmd: String,
     payload: P,
   ) -> WorkerThread {
     let worker = self.get_available_worker();
@@ -54,9 +54,7 @@ impl WorkerPoolInner {
       "[pool] got worker {}",
       worker.lock().unwrap().id
     );
-    let file_path = String::from(file_path);
     let waiting = self.busy_counter.clone();
-    let cmd = cmd.to_string();
     let debug = self.debug;
     let binary_args = self.binary_args.clone();
     let payload = payload.to_payload();
