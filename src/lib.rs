@@ -3,8 +3,8 @@
 mod as_payload;
 mod utils;
 mod worker;
-mod worker_pool_inner;
 mod worker_pool;
+mod worker_pool_inner;
 mod worker_thread;
 
 pub use as_payload::*;

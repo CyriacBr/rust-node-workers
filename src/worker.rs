@@ -108,7 +108,7 @@ impl Worker {
 
     Ok(result_str)
   }
-  
+
   pub fn wait_for_ready(&mut self) -> Result<()> {
     if !self.ready {
       let mut reader = self.stdout.take().unwrap();
@@ -119,7 +119,7 @@ impl Worker {
         .communicate("", "READY", &stdin, &mut reader, &mut child)
         .context("communicating with process")?;
       self.ready = true;
-      
+
       self.stdout = Some(reader);
       self.stdin = Some(stdin);
       self.child = Some(child);

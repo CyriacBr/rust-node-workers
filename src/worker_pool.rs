@@ -4,7 +4,10 @@ use crate::{
 };
 use anyhow::{bail, Result};
 use serde::de::DeserializeOwned;
-use std::{sync::{Arc, Mutex}, thread::JoinHandle};
+use std::{
+  sync::{Arc, Mutex},
+  thread::JoinHandle,
+};
 
 /// A pool of nodejs workers.
 /// Wraps a inner struct inside `Arc<Mutex<T>>` to be able to invoke it's method within a spawned thread.
@@ -141,7 +144,7 @@ impl WorkerPool {
       })
       .collect::<Result<Vec<_>, _>>()
   }
-  
+
   /// Boot a maximum of *n* workers, making them ready to take on a task right away.
   /// ```rust
   /// use node_workers::{WorkerPool};
@@ -150,7 +153,7 @@ impl WorkerPool {
   /// let handle = pool.warmup(2, "examples/worker");
   ///
   /// //... some intensive task on the main thread
-  /// 
+  ///
   /// handle.join().expect("Couldn't warmup workers");
   /// //... task workers
   /// ```
@@ -158,7 +161,11 @@ impl WorkerPool {
     let inner = self.inner.clone();
     let file_path = file_path.to_string();
     std::thread::spawn(move || {
-      inner.lock().unwrap().warmup(nbr_workers, &file_path).unwrap()
+      inner
+        .lock()
+        .unwrap()
+        .warmup(nbr_workers, &file_path)
+        .unwrap()
     })
   }
 }
@@ -196,7 +203,11 @@ mod tests {
   #[test]
   pub fn create_new_worker_when_busy() {
     let pool = WorkerPool::setup(2);
-    pool.inner.lock().unwrap().run_worker("examples/worker", "fib2", 40);
+    pool
+      .inner
+      .lock()
+      .unwrap()
+      .run_worker("examples/worker", "fib2", 40);
 
     let worker_id = pool
       .inner
@@ -213,7 +224,11 @@ mod tests {
   #[test]
   pub fn reuse_worker_when_full() {
     let pool = WorkerPool::setup(1);
-    pool.inner.lock().unwrap().run_worker("examples/worker", "fib2", 40);
+    pool
+      .inner
+      .lock()
+      .unwrap()
+      .run_worker("examples/worker", "fib2", 40);
 
     let worker_id = pool
       .inner
@@ -231,7 +246,7 @@ mod tests {
     let mut pool = WorkerPool::setup(2);
     pool.with_debug(true);
     pool.warmup(2, "examples/worker").join().unwrap();
-    
+
     let workers = pool.inner.lock().unwrap().workers.clone();
     for worker in workers {
       assert_eq!(worker.lock().unwrap().ready, true);
