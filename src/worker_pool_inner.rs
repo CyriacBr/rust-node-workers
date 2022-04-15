@@ -1,10 +1,10 @@
-use anyhow::{Result, bail};
+use anyhow::{bail, Result};
 
 use crate::{print_debug, worker::Worker, worker_thread::WorkerThread, AsPayload};
-use std::{sync::{
+use std::sync::{
   atomic::{AtomicUsize, Ordering},
   Arc, Mutex,
-}};
+};
 
 /// Struct responsible of the inner working of the pool
 /// Needs to be wrapped in a Arc<Mutex<T>> for manipulations within different threads
@@ -131,9 +131,8 @@ impl WorkerPoolInner {
       handles.push(handle);
     }
     for handle in handles {
-      match handle.join() {
-        std::thread::Result::Err(_) => bail!("thread panicked"),
-        _ => {}
+      if let std::thread::Result::Err(_) = handle.join() {
+        bail!("thread panicked")
       }
     }
     Ok(())
