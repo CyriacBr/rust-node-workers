@@ -20,9 +20,9 @@ impl WorkerThread {
   }
 
   /// Join the handle and deserialize it's result.
-  /// 
+  ///
   /// ## Errors
-  /// 
+  ///
   /// Whill return an error variant if the thread panicked during `join()`.
   pub fn get_result<R: DeserializeOwned>(self) -> Result<Option<R>> {
     match self.join() {

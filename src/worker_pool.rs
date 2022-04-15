@@ -117,7 +117,7 @@ impl WorkerPool {
   /// # }
   /// ```
   /// ## Errors
-  /// 
+  ///
   /// Each worker is run in a thread, and `perform()` will return an error variant if one of them panick.
   pub fn perform<T: DeserializeOwned, P: AsPayload>(
     &mut self,
@@ -130,11 +130,12 @@ impl WorkerPool {
     let mut handles = Vec::new();
     for (n, payload) in payloads.into_iter().map(|x| x.to_payload()).enumerate() {
       print_debug!(debug, "[pool] (task {}) start of iteration", n);
-      let handle = self
-        .inner
-        .lock()
-        .unwrap()
-        .run_worker(file_path.to_string(), cmd.to_string(), payload);
+      let handle =
+        self
+          .inner
+          .lock()
+          .unwrap()
+          .run_worker(file_path.to_string(), cmd.to_string(), payload);
       handles.push(handle);
       print_debug!(debug, "[pool] (task {}) end of iteration", n);
     }
