@@ -129,7 +129,7 @@ impl WorkerPoolInner {
       handles.push(handle);
     }
     for handle in handles {
-      if let std::thread::Result::Err(_) = handle.join() {
+      if handle.join().is_err() {
         bail!("thread panicked")
       }
     }
