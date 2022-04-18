@@ -30,7 +30,7 @@ impl Worker {
     }
   }
 
-  pub fn init(&mut self, binary_args: Vec<String>, file_path: Arc<str>) -> Result<()> {
+  pub fn init(&mut self, binary_args: Arc<Vec<String>>, file_path: Arc<str>) -> Result<()> {
     if self.child.is_some() {
       return Ok(());
     }

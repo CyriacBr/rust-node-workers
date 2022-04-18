@@ -10,7 +10,7 @@ use std::sync::{
 /// Needs to be wrapped in a Arc<Mutex<T>> for manipulations within different threads
 pub struct WorkerPoolInner {
   pub worker_path: Arc<str>,
-  pub binary_args: Vec<String>,
+  pub binary_args: Arc<Vec<String>>,
   pub workers: Vec<Arc<Mutex<Worker>>>,
   pub max_workers: usize,
   pub busy_counter: Arc<AtomicUsize>,
@@ -22,7 +22,7 @@ impl WorkerPoolInner {
   pub fn setup(worker_path: &str, max_workers: usize) -> Self {
     WorkerPoolInner {
       worker_path: worker_path.into(),
-      binary_args: vec!["node".into()],
+      binary_args: Arc::new(vec!["node".into()]),
       workers: Vec::new(),
       max_workers,
       busy_counter: Arc::new(AtomicUsize::new(0)),
@@ -32,7 +32,7 @@ impl WorkerPoolInner {
 
   /// Refers to `WorkerPool::set_binary` for documentation
   pub fn set_binary(&mut self, binary: &str) {
-    self.binary_args = shell_words::split(binary).expect("couldn't parse binary");
+    self.binary_args = Arc::new(shell_words::split(binary).expect("couldn't parse binary"));
   }
 
   /// Refers to `WorkerPool::with_debug` for documentation
@@ -110,7 +110,6 @@ impl WorkerPoolInner {
   pub fn warmup(&mut self, nbr_workers: usize) -> Result<()> {
     let n = nbr_workers.clamp(0, self.max_workers - self.workers.len());
     let debug = self.debug;
-    let file_path = self.worker_path.clone();
     let ln = self.workers.len();
     let mut handles = Vec::new();
     for n in 0..n {
@@ -121,7 +120,7 @@ impl WorkerPoolInner {
       print_debug!(debug, "[pool] (warmup) created new worker");
 
       let binary_args = self.binary_args.clone();
-      let file_path = file_path.clone();
+      let file_path = self.worker_path.clone();
       let handle = std::thread::spawn(move || {
         let worker = mutex.clone();
         let mut worker = worker.lock().unwrap();
