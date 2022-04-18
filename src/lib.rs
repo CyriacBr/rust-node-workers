@@ -30,7 +30,7 @@
 //!
 //! # fn main() -> Result<(), Box<dyn Error>> {
 //! // Create a pool of 4 node workers
-//! let mut pool = WorkerPool::setup(4);
+//! let mut pool = WorkerPool::setup("examples/worker", 4);
 //! pool.with_debug(true);
 //!
 //! // Payloads
@@ -41,7 +41,7 @@
 //!
 //! // execute the command "getInterfaces" on every file
 //! // each executed worker will return an array of interfaces (Vec<Interface>)
-//! let interfaces = pool.perform::<Vec<Interface>, _>("examples/worker", "getInterfaces", files)?;
+//! let interfaces = pool.perform::<Vec<Interface>, _>("getInterfaces", files)?;
 //! let interfaces: Vec<Interface> = interfaces
 //!   .into_iter()
 //!   .map(|x| x.unwrap())

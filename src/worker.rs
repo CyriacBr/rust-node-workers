@@ -2,7 +2,7 @@ use anyhow::{bail, Context, Ok, Result};
 use serde_json::Value;
 use std::{
   io::{BufRead, BufReader, Write},
-  process::{Child, ChildStdin, ChildStdout, Command, Stdio},
+  process::{Child, ChildStdin, ChildStdout, Command, Stdio}, sync::Arc,
 };
 
 use crate::print_debug;
@@ -30,7 +30,7 @@ impl Worker {
     }
   }
 
-  pub fn init(&mut self, binary_args: Vec<String>, file_path: &str) -> Result<()> {
+  pub fn init(&mut self, binary_args: Vec<String>, file_path: Arc<str>) -> Result<()> {
     if self.child.is_some() {
       return Ok(());
     }

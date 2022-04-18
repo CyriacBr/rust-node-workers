@@ -5,10 +5,14 @@ use serde_json::{json, Value};
 /// Represents an empty payload that can be sent to a node worker
 /// ```
 /// use node_workers::{EmptyPayload, WorkerPool};
+/// # use std::error::Error;
 ///
-/// let mut pool = WorkerPool::setup(1);
+/// # fn main() -> Result<(), Box<dyn Error>> {
+/// let mut pool = WorkerPool::setup("examples/worker", 1);
 /// let payloads = vec![EmptyPayload::new(), EmptyPayload::new()];
-/// pool.perform::<(), _>("examples/worker", "ping", payloads);
+/// pool.perform::<(), _>("ping", payloads)?;
+/// # Ok(())
+/// # }
 /// ```
 pub struct EmptyPayload {}
 impl EmptyPayload {
@@ -18,10 +22,14 @@ impl EmptyPayload {
   /// Convenient method to create an array of empty payload
   /// ```
   /// use node_workers::{EmptyPayload, WorkerPool};
+  /// # use std::error::Error;
   ///
-  /// let mut pool = WorkerPool::setup(1);
+  /// # fn main() -> Result<(), Box<dyn Error>> {
+  /// let mut pool = WorkerPool::setup("examples/worker", 1);
   /// let payloads = EmptyPayload::bulk(2);
-  /// pool.perform::<(), _>("examples/worker", "ping", payloads);
+  /// pool.perform::<(), _>("ping", payloads)?;
+  /// # Ok(())
+  /// # }
   /// ```
   pub fn bulk(n: u32) -> Vec<EmptyPayload> {
     (0..n).into_iter().map(|_| EmptyPayload::new()).collect()
@@ -83,10 +91,14 @@ macro_rules! impl_all {
 /// A macro to quickly create an array of payload. This is usefull for running a task with payloads of different types.
 /// ```
 /// use node_workers::{EmptyPayload, WorkerPool, AsPayload, make_payloads};
+/// # use std::error::Error;
 ///
-/// let mut pool = WorkerPool::setup(1);
+/// # fn main() -> Result<(), Box<dyn Error>> {
+/// let mut pool = WorkerPool::setup("examples/worker", 1);
 /// let payloads = make_payloads!(EmptyPayload::new(), 20, "test");
-/// pool.perform::<(), _>("examples/worker", "ping", payloads);
+/// pool.perform::<(), _>("ping", payloads)?;
+/// # Ok(())
+/// # }
 /// ```
 #[macro_export]
 macro_rules! make_payloads {

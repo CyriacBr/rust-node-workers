@@ -22,11 +22,11 @@ impl WorkerPool {
   /// use node_workers::{WorkerPool};
   ///
   /// let nbr_max_workers = 4;
-  /// let mut pool = WorkerPool::setup(nbr_max_workers);
+  /// let mut pool = WorkerPool::setup("worker.js", nbr_max_workers);
   /// ```
-  pub fn setup(max_workers: usize) -> Self {
+  pub fn setup(worker_path: &str, max_workers: usize) -> Self {
     WorkerPool {
-      inner: Arc::new(Mutex::new(WorkerPoolInner::setup(max_workers))),
+      inner: Arc::new(Mutex::new(WorkerPoolInner::setup(worker_path, max_workers))),
     }
   }
 
@@ -37,9 +37,9 @@ impl WorkerPool {
   /// # use std::error::Error;
   ///
   /// # fn main() -> Result<(), Box<dyn Error>> {
-  /// let mut pool = WorkerPool::setup(4);
+  /// let mut pool = WorkerPool::setup("examples/worker.ts", 4);
   /// pool.set_binary("node -r esbuild-register");
-  /// pool.perform::<(), _>("examples/worker.ts", "ping", EmptyPayload::bulk(1))?;
+  /// pool.perform::<(), _>("ping", EmptyPayload::bulk(1))?;
   /// # Ok(())
   /// # }
   /// ```
@@ -57,9 +57,9 @@ impl WorkerPool {
   /// ```
   /// use node_workers::{WorkerPool};
   ///
-  /// let mut pool = WorkerPool::setup(2);
+  /// let mut pool = WorkerPool::setup("examples/worker", 2);
   /// for n in 1..=4 {
-  ///   pool.run_worker("examples/worker", "fib", n * 10);
+  ///   pool.run_worker("fib", n * 10);
   /// }
   /// println!("not blocking");
   /// ```
@@ -71,21 +71,15 @@ impl WorkerPool {
   /// # use std::error::Error;
   ///
   /// # fn main() -> Result<(), Box<dyn Error>> {
-  /// let mut pool = WorkerPool::setup(2);
-  /// let thread = pool.run_worker("examples/worker", "fib2", 40u32);
+  /// let mut pool = WorkerPool::setup("examples/worker", 2);
+  /// let thread = pool.run_worker("fib2", 40u32);
   /// let result = thread.get_result::<u32>()?;
   /// println!("run_worker result: {:#?}", result);
   /// # Ok(())
   /// # }
   /// ```
-  pub fn run_worker<P: AsPayload>(
-    &mut self,
-    file_path: &str,
-    cmd: &str,
-    payload: P,
-  ) -> WorkerThread {
+  pub fn run_worker<P: AsPayload>(&mut self, cmd: &str, payload: P) -> WorkerThread {
     let payload = payload.to_payload();
-    let file_path = file_path.to_string();
     let cmd = cmd.to_string();
     let inner = self.inner.clone();
 
@@ -93,7 +87,7 @@ impl WorkerPool {
     let handle = std::thread::spawn(move || {
       let inner = inner.clone();
       let mut pool = inner.lock().unwrap();
-      let res = pool.run_worker(file_path, cmd, payload);
+      let res = pool.run_worker(cmd, payload);
       drop(pool);
       res.join().unwrap()
     });
@@ -108,10 +102,10 @@ impl WorkerPool {
   /// # use std::error::Error;
   ///
   /// # fn main() -> Result<(), Box<dyn Error>> {
-  /// let mut pool = WorkerPool::setup(2);
+  /// let mut pool = WorkerPool::setup("examples/worker", 2);
   /// pool.with_debug(true);
   /// let payloads = vec![10, 20, 30, 40];
-  /// let result = pool.perform::<u64, _>("examples/worker", "fib2", payloads).unwrap();
+  /// let result = pool.perform::<u64, _>("fib2", payloads).unwrap();
   /// println!("result: {:#?}", result);
   /// # Ok(())
   /// # }
@@ -121,7 +115,6 @@ impl WorkerPool {
   /// Each worker is run in a thread, and `perform()` will return an error variant if one of them panick.
   pub fn perform<T: DeserializeOwned, P: AsPayload>(
     &mut self,
-    file_path: &str,
     cmd: &str,
     payloads: Vec<P>,
   ) -> Result<Vec<Option<T>>> {
@@ -130,12 +123,11 @@ impl WorkerPool {
     let mut handles = Vec::new();
     for (n, payload) in payloads.into_iter().map(|x| x.to_payload()).enumerate() {
       print_debug!(debug, "[pool] (task {}) start of iteration", n);
-      let handle =
-        self
-          .inner
-          .lock()
-          .unwrap()
-          .run_worker(file_path.to_string(), cmd.to_string(), payload);
+      let handle = self
+        .inner
+        .lock()
+        .unwrap()
+        .run_worker(cmd.to_string(), payload);
       handles.push(handle);
       print_debug!(debug, "[pool] (task {}) end of iteration", n);
     }
@@ -159,24 +151,17 @@ impl WorkerPool {
   /// ```rust
   /// use node_workers::{WorkerPool};
   ///
-  /// let mut pool = WorkerPool::setup(2);
-  /// let handle = pool.warmup(2, "examples/worker");
+  /// let mut pool = WorkerPool::setup("examples/worker", 2);
+  /// let handle = pool.warmup(2);
   ///
   /// //... some intensive task on the main thread
   ///
   /// handle.join().expect("Couldn't warmup workers");
   /// //... task workers
   /// ```
-  pub fn warmup(&self, nbr_workers: usize, file_path: &str) -> JoinHandle<()> {
+  pub fn warmup(&self, nbr_workers: usize) -> JoinHandle<()> {
     let inner = self.inner.clone();
-    let file_path = file_path.to_string();
-    std::thread::spawn(move || {
-      inner
-        .lock()
-        .unwrap()
-        .warmup(nbr_workers, &file_path)
-        .unwrap()
-    })
+    std::thread::spawn(move || inner.lock().unwrap().warmup(nbr_workers).unwrap())
   }
 }
 
@@ -186,7 +171,7 @@ mod tests {
 
   #[test]
   pub fn create_worker_when_needed() {
-    let pool = WorkerPool::setup(1);
+    let pool = WorkerPool::setup("", 1);
     assert_eq!(pool.inner.lock().unwrap().workers.len(), 0);
 
     pool.inner.lock().unwrap().get_available_worker();
@@ -195,7 +180,7 @@ mod tests {
 
   #[test]
   pub fn same_idle_worker() {
-    let pool = WorkerPool::setup(1);
+    let pool = WorkerPool::setup("", 1);
     let worker = pool.inner.lock().unwrap().get_available_worker();
     worker.lock().unwrap().idle = true;
     let worker_id = worker.lock().unwrap().id;
@@ -212,12 +197,8 @@ mod tests {
 
   #[test]
   pub fn create_new_worker_when_busy() {
-    let pool = WorkerPool::setup(2);
-    pool
-      .inner
-      .lock()
-      .unwrap()
-      .run_worker("examples/worker".into(), "fib2".into(), 40);
+    let pool = WorkerPool::setup("examples/worker", 2);
+    pool.inner.lock().unwrap().run_worker("fib2".into(), 40);
 
     let worker_id = pool
       .inner
@@ -233,12 +214,8 @@ mod tests {
 
   #[test]
   pub fn reuse_worker_when_full() {
-    let pool = WorkerPool::setup(1);
-    pool
-      .inner
-      .lock()
-      .unwrap()
-      .run_worker("examples/worker".into(), "fib2".into(), 40);
+    let pool = WorkerPool::setup("examples/worker", 1);
+    pool.inner.lock().unwrap().run_worker("fib2".into(), 40);
 
     let worker_id = pool
       .inner
@@ -253,9 +230,9 @@ mod tests {
 
   #[test]
   pub fn warmup() {
-    let mut pool = WorkerPool::setup(2);
+    let mut pool = WorkerPool::setup("examples/worker", 2);
     pool.with_debug(true);
-    pool.warmup(2, "examples/worker").join().unwrap();
+    pool.warmup(2).join().unwrap();
 
     let workers = pool.inner.lock().unwrap().workers.clone();
     for worker in workers {
@@ -266,21 +243,21 @@ mod tests {
   #[test]
   pub fn error_invalid_command() {
     {
-      let mut pool = WorkerPool::setup(1);
-      let res = pool.run_worker("foo", "fib2", 40).join();
+      let mut pool = WorkerPool::setup("foo", 1);
+      let res = pool.run_worker("fib2", 40).join();
       println!("{:?}", res);
       assert_eq!(true, matches!(res, Err(_)));
     }
 
     {
-      let mut pool = WorkerPool::setup(1);
-      let res = pool.perform::<(), _>("foo", "fib2", vec![40]);
+      let mut pool = WorkerPool::setup("foo", 1);
+      let res = pool.perform::<(), _>("fib2", vec![40]);
       assert_eq!(true, matches!(res, Err(_)));
     }
 
     {
-      let pool = WorkerPool::setup(1);
-      let res = pool.warmup(1, "foo").join();
+      let pool = WorkerPool::setup("foo", 1);
+      let res = pool.warmup(1).join();
       assert_eq!(true, matches!(res, Err(_)));
     }
   }
@@ -288,14 +265,14 @@ mod tests {
   #[test]
   pub fn error_task_throws() {
     {
-      let mut pool = WorkerPool::setup(1);
-      let res = pool.run_worker("examples/worker", "error", 40).join();
+      let mut pool = WorkerPool::setup("examples/worker", 1);
+      let res = pool.run_worker("error", 40).join();
       assert_eq!(true, matches!(res, Err(_)));
     }
 
     {
-      let mut pool = WorkerPool::setup(1);
-      let res = pool.perform::<(), _>("examples/worker", "error", vec![40]);
+      let mut pool = WorkerPool::setup("examples/worker", 1);
+      let res = pool.perform::<(), _>("error", vec![40]);
       assert_eq!(true, matches!(res, Err(_)));
     }
   }
@@ -303,14 +280,14 @@ mod tests {
   #[test]
   pub fn error_task_not_found() {
     {
-      let mut pool = WorkerPool::setup(1);
-      let res = pool.run_worker("examples/worker", "no", 40).join();
+      let mut pool = WorkerPool::setup("examples/worker", 1);
+      let res = pool.run_worker("no", 40).join();
       assert_eq!(true, matches!(res, Err(_)));
     }
 
     {
-      let mut pool = WorkerPool::setup(1);
-      let res = pool.perform::<(), _>("examples/worker", "no", vec![40]);
+      let mut pool = WorkerPool::setup("examples/worker", 1);
+      let res = pool.perform::<(), _>("no", vec![40]);
       assert_eq!(true, matches!(res, Err(_)));
     }
   }

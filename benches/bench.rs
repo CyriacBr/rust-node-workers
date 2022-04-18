@@ -20,11 +20,11 @@ fn bench_fast_binary(c: &mut Criterion) {
         .unwrap();
     })
   });
-  let mut pool = WorkerPool::setup(1);
+  let mut pool = WorkerPool::setup("benches/workers/fast", 1);
   group.bench_function("worker pool", |b| {
     b.iter(|| {
       pool
-        .perform::<(), _>("benches/workers/fast", "fib", black_box(vec![30]))
+        .perform::<(), _>("fib", black_box(vec![30]))
         .unwrap();
     })
   });
@@ -49,11 +49,11 @@ fn bench_slow_binary(c: &mut Criterion) {
         .unwrap();
     })
   });
-  let mut pool = WorkerPool::setup(1);
+  let mut pool = WorkerPool::setup("benches/workers/slow", 1);
   group.bench_function("worker pool", |b| {
     b.iter(|| {
       pool
-        .perform::<(), _>("benches/workers/slow", "fib", black_box(vec![30]))
+        .perform::<(), _>("fib", black_box(vec![30]))
         .unwrap();
     })
   });

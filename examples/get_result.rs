@@ -2,12 +2,10 @@ use node_workers::{EmptyPayload, WorkerPool};
 
 fn main() {
   {
-    let mut pool = WorkerPool::setup(2);
+    let mut pool = WorkerPool::setup("examples/worker", 2);
     pool.with_debug(true);
     let payloads = vec![10, 20, 30, 40];
-    let result = pool
-      .perform::<u64, _>("examples/worker", "fib2", payloads)
-      .unwrap();
+    let result = pool.perform::<u64, _>("fib2", payloads).unwrap();
     println!("-----");
     println!("result: {:?}", result);
   }
@@ -22,9 +20,9 @@ fn main() {
       phones: Vec<String>,
     }
 
-    let mut pool = WorkerPool::setup(2);
+    let mut pool = WorkerPool::setup("examples/worker", 2);
     let result = pool
-      .perform::<Person, _>("examples/worker", "getUser", vec![EmptyPayload::new()])
+      .perform::<Person, _>("getUser", vec![EmptyPayload::new()])
       .unwrap();
     println!("-----");
     println!("result: {:?}", result);

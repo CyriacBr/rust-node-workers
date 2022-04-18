@@ -9,6 +9,7 @@ use std::sync::{
 /// Struct responsible of the inner working of the pool
 /// Needs to be wrapped in a Arc<Mutex<T>> for manipulations within different threads
 pub struct WorkerPoolInner {
+  pub worker_path: Arc<str>,
   pub binary_args: Vec<String>,
   pub workers: Vec<Arc<Mutex<Worker>>>,
   pub max_workers: usize,
@@ -18,8 +19,9 @@ pub struct WorkerPoolInner {
 
 impl WorkerPoolInner {
   /// Create a new pool with some parameters
-  pub fn setup(max_workers: usize) -> Self {
+  pub fn setup(worker_path: &str, max_workers: usize) -> Self {
     WorkerPoolInner {
+      worker_path: worker_path.into(),
       binary_args: vec!["node".into()],
       workers: Vec::new(),
       max_workers,
@@ -42,7 +44,6 @@ impl WorkerPoolInner {
   /// and therefor can block if the pool is waiting for an idle worker.
   pub fn run_worker<P: AsPayload>(
     &mut self,
-    file_path: String,
     cmd: String,
     payload: P,
   ) -> WorkerThread {
@@ -58,11 +59,12 @@ impl WorkerPoolInner {
     let debug = self.debug;
     let binary_args = self.binary_args.clone();
     let payload = payload.to_payload();
+    let file_path = self.worker_path.clone();
 
     let handle = std::thread::spawn(move || {
       let worker = worker.clone();
       let mut worker = worker.lock().unwrap();
-      worker.init(binary_args, file_path.as_str()).unwrap();
+      worker.init(binary_args, file_path).unwrap();
       let res = worker.perform_task(cmd, payload).expect("perform task");
       print_debug!(debug, "[pool] performed task on worker {}", worker.id);
       drop(worker);
@@ -105,9 +107,10 @@ impl WorkerPoolInner {
     self.get_available_worker()
   }
 
-  pub fn warmup(&mut self, nbr_workers: usize, file_path: &str) -> Result<()> {
+  pub fn warmup(&mut self, nbr_workers: usize) -> Result<()> {
     let n = nbr_workers.clamp(0, self.max_workers - self.workers.len());
     let debug = self.debug;
+    let file_path = self.worker_path.clone();
     let ln = self.workers.len();
     let mut handles = Vec::new();
     for n in 0..n {
@@ -118,11 +121,11 @@ impl WorkerPoolInner {
       print_debug!(debug, "[pool] (warmup) created new worker");
 
       let binary_args = self.binary_args.clone();
-      let file_path = file_path.to_string();
+      let file_path = file_path.clone();
       let handle = std::thread::spawn(move || {
         let worker = mutex.clone();
         let mut worker = worker.lock().unwrap();
-        worker.init(binary_args, &file_path).unwrap();
+        worker.init(binary_args, file_path).unwrap();
         worker.wait_for_ready().unwrap();
         print_debug!(debug, "[pool] (warmup) worker {} initialized", id);
       });

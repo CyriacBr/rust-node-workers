@@ -16,18 +16,7 @@ fn main() {
   let bm = BenchMan::new("timing");
   for worker_name in vec!["fast", "slow"] {
     let std_name = &format!("{}-inner", worker_name);
-
-    let mut pool = WorkerPool::setup(1);
-    let mut worker_pool = |worker_name: &str| {
-      pool
-        .perform::<(), _>(
-          &format!("benches/workers/{}", worker_name),
-          "fib",
-          vec![30u32],
-        )
-        .unwrap();
-    };
-
+    
     {
       let _sw = bm.get_stopwatch(&format!("[{}] standard command - first run", worker_name));
       standard_command(std_name);
@@ -42,9 +31,10 @@ fn main() {
       }
     }
 
+    let mut pool = WorkerPool::setup(&format!("benches/workers/{}", worker_name), 1);
     {
       let _sw = bm.get_stopwatch(&format!("[{}] worker pool - first run", worker_name));
-      worker_pool(worker_name);
+      pool.perform::<(), _>("fib", vec![30u32]).unwrap();
     }
     {
       let _sw = bm.get_stopwatch(&format!(
@@ -52,7 +42,7 @@ fn main() {
         worker_name
       ));
       for _ in 0..3 {
-        worker_pool(worker_name);
+        pool.perform::<(), _>("fib", vec![30u32]).unwrap();
       }
     }
   }
