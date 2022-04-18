@@ -1,6 +1,6 @@
 {
   "name": "rust-node-workers",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "main": "dist/bridge.js",
   "types": "dist/bridge.d.ts",
   "license": "MIT",

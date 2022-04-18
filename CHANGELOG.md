@@ -1,234 +1,132 @@
 # Changelog
+
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [0.8.1] - 2022-04-18
 
-## [Unreleased]
+### Miscellaneous Tasks
+
+- Format code
+- Fix CI
 
 ## [0.8.0] - 2022-04-18
 
-### Added
-- optimize binary_args clone
-- *(WorkerPool)* add warmup()
-- make WorkerPool thread friendly
-- *(WorkerPool)* add set_binary option
-- *(WorkerPool)* simplify run_worker API
-- directly expose APIs and setup rustdoc
-- handle child errors
-- add debug option
-- add examples
-- simplifies API with AsPayload
-- support returning result from worker
-- add bridge
-- support sending payloads
+### Documentation
 
-### Fixed
-- properly wait for idle worker
+- Update doc
 
-### Other
-- update doc
-- [**breaking**] add worker_path to WorkerPool::setup
-- release 0.7.0
-- fix CI
-- format code
-- improve documentation
-- remove unecessary layer of indirection
-- format code
-- fix clippy error
-- fix tsc compilation
-- improve CI
-- release 0.6.0
-- format code
-- improve documentation
-- improve examples
-- improve examples
-- *(WorkerPool)* [**breaking**] rename run_task to perform
-- improve github action workflows
-- fix npm package version
-- release 0.5.2
-- fix npm package name
-- correct typos
-- fix incorrect workflow
-- release 0.5.1
-- improve docs
-- fix CI
-- fix CI
-- fix CI
-- prepare for release
-- format code
-- remove unecessary code
-- fix clippy errors
-- add tests
-- improve timing benchmark
-- add benchmark
-- fix clippy errors
-- remove napi-rs
-- setup project with initial impl
+### Features
+
+- Optimize binary_args clone
+
+### Miscellaneous Tasks
+
+- Release 0.8.0
+
+### Refactor
+
+- [**breaking**] Add worker_path to WorkerPool::setup
 
 ## [0.7.0] - 2022-04-15
 
-### Added
-- *(WorkerPool)* add warmup()
-- make WorkerPool thread friendly
-- *(WorkerPool)* add set_binary option
-- *(WorkerPool)* simplify run_worker API
-- directly expose APIs and setup rustdoc
-- handle child errors
-- add debug option
-- add examples
-- simplifies API with AsPayload
-- support returning result from worker
-- add bridge
-- support sending payloads
+### Documentation
 
-### Fixed
-- properly wait for idle worker
+- Improve documentation
 
-### Other
-- fix CI
-- format code
-- improve documentation
-- remove unecessary layer of indirection
-- format code
-- fix clippy error
-- fix tsc compilation
-- improve CI
-- release 0.6.0
-- format code
-- improve documentation
-- improve examples
-- improve examples
-- *(WorkerPool)* [**breaking**] rename run_task to perform
-- improve github action workflows
-- fix npm package version
-- release 0.5.2
-- fix npm package name
-- correct typos
-- fix incorrect workflow
-- release 0.5.1
-- improve docs
-- fix CI
-- fix CI
-- fix CI
-- prepare for release
-- format code
-- remove unecessary code
-- fix clippy errors
-- add tests
-- improve timing benchmark
-- add benchmark
-- fix clippy errors
-- remove napi-rs
-- setup project with initial impl
+### Features
+
+- Make WorkerPool thread friendly
+- Add warmup()
+
+### Miscellaneous Tasks
+
+- Improve CI
+- Fix tsc compilation
+- Fix clippy error
+- Format code
+- Format code
+- Fix CI
+- Release 0.7.0
+
+### Reafactor
+
+- Remove unecessary layer of indirection
 
 ## [0.6.0] - 2022-04-12
 
-### Added
-- *(WorkerPool)* add set_binary option
-- *(WorkerPool)* simplify run_worker API
-- directly expose APIs and setup rustdoc
-- handle child errors
-- add debug option
-- add examples
-- simplifies API with AsPayload
-- support returning result from worker
-- add bridge
-- support sending payloads
+### Documentation
 
-### Fixed
-- properly wait for idle worker
+- Improve documentation
 
-### Other
-- format code
-- improve documentation
-- improve examples
-- improve examples
-- *(WorkerPool)* [**breaking**] rename run_task to perform
-- improve github action workflows
-- fix npm package version
-- release 0.6.0
-- fix npm package name
-- correct typos
-- fix incorrect workflow
-- release 0.5.1
-- improve docs
-- fix CI
-- fix CI
-- fix CI
-- prepare for release
-- format code
-- remove unecessary code
-- fix clippy errors
-- add tests
-- improve timing benchmark
-- add benchmark
-- fix clippy errors
-- remove napi-rs
-- setup project with initial impl
+### Features
+
+- Simplify run_worker API
+- Add set_binary option
+
+### Miscellaneous Tasks
+
+- Fix npm package version
+- Improve github action workflows
+- Improve examples
+- Improve examples
+- Format code
+- Release 0.6.0
+
+### Refactor
+
+- [**breaking**] Rename run_task to perform
 
 ## [0.5.2] - 2022-04-11
 
-### Added
-- directly expose APIs and setup rustdoc
-- handle child errors
-- add debug option
-- add examples
-- simplifies API with AsPayload
-- support returning result from worker
-- add bridge
-- support sending payloads
+### Documentation
 
-### Fixed
-- properly wait for idle worker
+- Correct typos
 
-### Other
-- fix npm package name
-- correct typos
-- fix incorrect workflow
-- release 0.5.1
-- improve docs
-- fix CI
-- fix CI
-- fix CI
-- prepare for release
-- format code
-- remove unecessary code
-- fix clippy errors
-- add tests
-- improve timing benchmark
-- add benchmark
-- fix clippy errors
-- remove napi-rs
-- setup project with initial impl
+### Miscellaneous Tasks
 
-## [0.5.1] - 2022-04-11
+- Fix npm package name
+- Release 0.5.2
 
-### Added
-- directly expose APIs and setup rustdoc
-- handle child errors
-- add debug option
-- add examples
-- simplifies API with AsPayload
-- support returning result from worker
-- add bridge
-- support sending payloads
+## [0.5] - 2022-04-11
 
-### Fixed
-- properly wait for idle worker
+### Bug Fixes
 
-### Other
-- improve docs
-- fix CI
-- fix CI
-- fix CI
-- prepare for release
-- format code
-- remove unecessary code
-- fix clippy errors
-- add tests
-- improve timing benchmark
-- add benchmark
-- fix clippy errors
-- remove napi-rs
-- setup project with initial impl
+- Properly wait for idle worker
+
+### Documentation
+
+- Improve docs
+- Fix incorrect workflow
+
+### Features
+
+- Support sending payloads
+- Add bridge
+- Support returning result from worker
+- Simplifies API with AsPayload
+- Add examples
+- Add debug option
+- Handle child errors
+- Directly expose APIs and setup rustdoc
+
+### Miscellaneous Tasks
+
+- Setup project with initial impl
+- Remove napi-rs
+- Fix clippy errors
+- Add benchmark
+- Improve timing benchmark
+- Fix clippy errors
+- Remove unecessary code
+- Format code
+- Prepare for release
+- Fix CI
+- Fix CI
+- Fix CI
+- Release 0.5.1
+
+### Testing
+
+- Add tests
+
+<!-- generated by git-cliff -->

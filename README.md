@@ -41,7 +41,7 @@ yarn add rust-node-workers
 In your rust project:
 ```yml
 [dependencies]
-node-workers = "0.8.0"
+node-workers = "0.8.1"
 ```
 
 ## Usage
@@ -100,7 +100,8 @@ cargo run --example
 
 ### Publishing
 
-- `release-plz update`
-- Adjust package.json version
-- `git commit -m "chore: release" && git tag vx.y.z && git push --follow-tags`
+- `git tag vx.y.z`
+- Adjust package.json and crate version
+- `git cliff --output CHANGELOG.md`
+- `git commit -m "chore: release" && git push --follow-tags`
 - `npm publish --access=public`
