@@ -1,5 +1,5 @@
 # Rust Node Workers
-[![CI](https://github.com/CyriacBr/rust-node-workers/actions/workflows/CI.yml/badge.svg)](https://github.com/CyriacBr/rust-node-workers/actions/workflows/CI.yml)
+[![CI](https://github.com/CyriacBr/rust-node-workers/workflows/CI/badge.svg)](https://github.com/CyriacBr/rust-node-workers/actions/workflows/CI.yml)
 [![crates.io](https://img.shields.io/crates/v/node-workers.svg)](https://crates.io/crates/node-workers)
 [![documentation](https://img.shields.io/badge/docs-live-brightgreen)](https://docs.rs/node_workers)
 
