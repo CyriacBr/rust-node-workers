@@ -41,7 +41,7 @@ yarn add rust-node-workers
 In your rust project:
 ```yml
 [dependencies]
-node-workers = "0.5.1"
+node-workers = "0.8.0"
 ```
 
 ## Usage
