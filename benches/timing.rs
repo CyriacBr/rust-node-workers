@@ -16,7 +16,7 @@ fn main() {
   let bm = BenchMan::new("timing");
   for worker_name in vec!["fast", "slow"] {
     let std_name = &format!("{}-inner", worker_name);
-    
+
     {
       let _sw = bm.get_stopwatch(&format!("[{}] standard command - first run", worker_name));
       standard_command(std_name);

@@ -2,7 +2,8 @@ use anyhow::{bail, Context, Ok, Result};
 use serde_json::Value;
 use std::{
   io::{BufRead, BufReader, Write},
-  process::{Child, ChildStdin, ChildStdout, Command, Stdio}, sync::Arc,
+  process::{Child, ChildStdin, ChildStdout, Command, Stdio},
+  sync::Arc,
 };
 
 use crate::print_debug;

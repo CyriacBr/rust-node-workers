@@ -42,11 +42,7 @@ impl WorkerPoolInner {
 
   /// Run a worker in a new thread. However, `get_available_worker` is executed on the main thread
   /// and therefor can block if the pool is waiting for an idle worker.
-  pub fn run_worker<P: AsPayload>(
-    &mut self,
-    cmd: String,
-    payload: P,
-  ) -> WorkerThread {
+  pub fn run_worker<P: AsPayload>(&mut self, cmd: String, payload: P) -> WorkerThread {
     let worker = self.get_available_worker();
     self.busy_counter.fetch_add(1, Ordering::SeqCst);
 
