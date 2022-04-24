@@ -5,7 +5,7 @@
 
 This lets you call node binaries from Rust code using a pool of workers. This is useful for project that are mostly coded in Rust
 but need to leverage Node packages for some tasks, like using Typescript's API or performing SSR with a JS framework.  
-Using a pool of workers is fundamental to avoid the cost of booting node binaries on multiple calls. Medium to big Node binaries can take about a second to bot (or more) depending on its imports, and using a pool of long-lived processes save you time on subsequent runs. If throughout the usage of your program you need to interact with a node binary multiple times, a reusable and long-lived process will save you a LOT of time.  
+Using a pool of workers is fundamental to avoid the cost of booting node binaries on multiple calls. Medium to big Node binaries can take about a second to bot (or more) depending on their imports, and using a pool of long-lived processes save you time on subsequent runs. If throughout the usage of your program you need to interact with a node binary multiple times, a reusable and long-lived process will save you a LOT of time.  
 
 This solution differs from calling rust within Node like you'd do with solutions like `napi-rs`. If most of your code is written in Rust, the additional overhead of creating and maintaining node addons won't be worth it.
 
